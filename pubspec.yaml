@@ -38,6 +38,12 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  intl: ^0.20.2               # Internationalization, date & number formatting :contentReference[oaicite:0]{index=0}
+  fl_chart: ^0.71.0        # Flutter chart library tanpa dependensi intl :contentReference[oaicite:0]{index=0}
+  data_table_2: ^2.6.0        # Enhanced DataTable with sticky headers :contentReference[oaicite:2]{index=2}
+  syncfusion_flutter_xlsio: ^29.1.39  # Excel export library (XLSX) :contentReference[oaicite:3]{index=3}
+  flutter_svg: ^2.1.0         # SVG rendering & widget library :contentReference[oaicite:4]{index=4}
+  json_annotation: ^4.9.0
 
 dev_dependencies:
   flutter_test:
@@ -49,6 +55,8 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
+  json_serializable: ^6.9.5   # Generates fromJson/toJson code :contentReference[oaicite:6]{index=6}
+  build_runner: ^2.4.15        # Runs code generators (e.g. json_serializable) :contentReference[oaicite:7]{index=7}
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
