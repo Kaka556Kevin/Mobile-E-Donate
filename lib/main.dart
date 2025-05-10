@@ -55,7 +55,7 @@ class _MainTabViewState extends State<MainTabView> {
 
   ];
 
-  final _titles = ['Dashboard', 'Donasi', 'Laporan', 'Uang Donasi'];
+  // final _titles = ['Dashboard', 'Donasi', 'Laporan', 'Uang Donasi'];
 
   @override
   Widget build(BuildContext context) {
