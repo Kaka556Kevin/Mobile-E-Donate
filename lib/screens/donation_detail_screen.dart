@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/donation.dart';
+import 'package:intl/intl.dart';
 import 'donation_form_screen.dart';
 
 class DonationDetailScreen extends StatelessWidget {
@@ -9,39 +10,52 @@ class DonationDetailScreen extends StatelessWidget {
   DonationDetailScreen({required this.donation});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext ctx) {
     return Scaffold(
       appBar: AppBar(title: Text(donation.nama)),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Image.network("http://10.0.2.2:8000/storage/${donation.gambar}"),
-            SizedBox(height: 20),
-            Text('Deskripsi: ${donation.deskripsi}'),
-            Text('Target Terkumpul: ${donation.targetTerkumpul}'),
-          ],
-        ),
+      body: ListView(
+        padding: EdgeInsets.all(16),
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.network(
+              'https://dalitmayaan.com/storage/${donation.gambar}',
+              height: 180,
+              fit: BoxFit.cover,
+            ),
+          ),
+          SizedBox(height: 16),
+          Text('Deskripsi', style: TextStyle(fontWeight: FontWeight.bold)),
+          SizedBox(height: 4),
+          Text(donation.deskripsi),
+          SizedBox(height: 12),
+          Text('Target Terkumpul: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ').format(donation.target)}'),
+          Text('Terkumpul: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ').format(donation.collected)}'),
+        ],
       ),
       floatingActionButton: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        mainAxisAlignment: MainAxisAlignment.end,
         children: [
           FloatingActionButton(
+            heroTag: 'edit',
+            backgroundColor: Colors.orange,
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => DonationFormScreen(donation: donation),
-                ),
-              );
+              Navigator.push<bool>(
+                ctx,
+                MaterialPageRoute(builder: (_) => DonationFormScreen(donation: donation)),
+              ).then((refresh) {
+                if (refresh == true) Navigator.pop(ctx, true);
+              });
             },
             child: Icon(Icons.edit),
           ),
+          SizedBox(width: 16),
           FloatingActionButton(
+            heroTag: 'del',
+            backgroundColor: Colors.red,
             onPressed: () async {
               await ApiService().deleteDonation(donation.id);
-              Navigator.pop(context);
+              Navigator.pop(ctx, true);
             },
             child: Icon(Icons.delete),
           ),

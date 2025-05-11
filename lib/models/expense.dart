@@ -1,44 +1,11 @@
-// // lib/models/expense.dart
-
-// class Expense {
-//   final int id;
-//   final String description;
-//   final DateTime date;
-//   final int amount;
-
-//   Expense({
-//     required this.id,
-//     required this.description,
-//     required this.date,
-//     required this.amount,
-//   });
-
-//   factory Expense.fromJson(Map<String, dynamic> json) {
-//     return Expense(
-//       id: json['id'] as int,
-//       description: json['description'] as String,
-//       date: DateTime.parse(json['date'] as String),
-//       amount: int.parse(json['amount'].toString()),
-//     );
-//   }
-
-//   Map<String, dynamic> toJson() {
-//     return {
-//       'id': id,
-//       'description': description,
-//       'date': date.toIso8601String(),
-//       'amount': amount,
-//     };
-//   }
-// }
-
 import 'package:intl/intl.dart';
+import 'dart:io';
 
 class Expense {
   final int id;
   final String description;
   final DateTime date;
-  final int amount;
+  final double amount;
 
   Expense({
     required this.id,
@@ -47,26 +14,21 @@ class Expense {
     required this.amount,
   });
 
-  factory Expense.fromJson(Map<String, dynamic> json) {
-    return Expense(
-      id: json['id'] as int,
-      description: json['description'] as String,
-      date: DateTime.parse(json['date'] as String),
-      amount: int.parse(json['amount'].toString()),
-    );
-  }
+  factory Expense.fromJson(Map<String, dynamic> json) => Expense(
+        id: json['id'] as int,
+        description: json['description'] as String,
+        date: DateTime.parse(json['date'] as String),
+        amount: (json['amount'] as num).toDouble(),
+      );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'description': description,
-      'date': date.toIso8601String(),
-      'amount': amount,
-    };
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'description': description,
+        'date': date.toIso8601String(),
+        'amount': amount,
+      };
 
-  // Computed getters untuk UI
-  String get dateFormatted => DateFormat.yMMMMd('en_US').format(date);
-
-  String get amountFormatted => NumberFormat.compact(locale: 'en_US').format(amount);
+  String get dateFormatted => DateFormat.yMMMMd('id_ID').format(date);
+  String get amountFormatted => NumberFormat.currency(
+        locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
 }

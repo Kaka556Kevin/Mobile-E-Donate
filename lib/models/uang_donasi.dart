@@ -1,8 +1,8 @@
 class UangDonasi {
   final int id;
   final String namaDonasi;
-  final int uangMasuk;
-  final int uangKeluar;
+  final double uangMasuk;
+  final double uangKeluar;
 
   UangDonasi({
     required this.id,
@@ -12,11 +12,11 @@ class UangDonasi {
   });
 
   factory UangDonasi.fromJson(Map<String, dynamic> json) => UangDonasi(
-        id: json['id'],
-        namaDonasi: json['nama_donasi'],
-        uangMasuk: int.parse(json['uang_masuk'].toString()),
-        uangKeluar: int.parse(json['uang_keluar'].toString()),
+        id: json['id'] as int,
+        namaDonasi: json['nama_donasi'] as String,
+        uangMasuk: (json['uang_masuk'] as num).toDouble(),
+        uangKeluar: (json['uang_keluar'] as num).toDouble(),
       );
 
-  int get saldo => uangMasuk - uangKeluar;
+  double get saldo => uangMasuk - uangKeluar;
 }

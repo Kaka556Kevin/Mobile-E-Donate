@@ -1,6 +1,6 @@
 class KelolaDonasi {
   final String nama;
-  final int donasiTerkumpul;
+  final double donasiTerkumpul;
 
   KelolaDonasi({
     required this.nama,
@@ -8,7 +8,7 @@ class KelolaDonasi {
   });
 
   factory KelolaDonasi.fromJson(Map<String, dynamic> json) => KelolaDonasi(
-        nama: json['nama'],
-        donasiTerkumpul: int.parse(json['donasi_terkumpul'].toString()),
+        nama: json['nama'] as String,
+        donasiTerkumpul: (json['donasi_terkumpul'] as num).toDouble(),
       );
 }
