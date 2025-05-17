@@ -3,7 +3,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:data_table_2/data_table_2.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:syncfusion_flutter_xlsio/xlsio.dart' as xlsio;
 import '../models/donation.dart';
 import '../services/api_service.dart';
@@ -37,7 +36,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
     sheet.getRangeByName('D1').setText('Status');
 
     for (var i = 0; i < list.length; i++) {
-      final row = i + 2;
       final d = list[i];
       sheet.getRangeByName('A\$row').setText(d.nama);
       sheet.getRangeByName('B\$row').setNumber(d.target);
@@ -49,7 +47,6 @@ class _FinanceScreenState extends State<FinanceScreen> {
 
     final bytes = workbook.saveAsStream();
     workbook.dispose();
-    final dir = await getApplicationDocumentsDirectory();
     final file = File('\${dir.path}/donations_finance.xlsx');
     await file.writeAsBytes(bytes, flush: true);
 
