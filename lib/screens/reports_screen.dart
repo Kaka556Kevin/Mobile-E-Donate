@@ -23,8 +23,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
   }
 
   Future<void> _loadDonations() async {
-    final list = await ApiService().fetchAllDonations();
-    setState(() => _allDonations = list);
+    try {
+      final list = await ApiService().fetchAllDonations();
+      setState(() => _allDonations = list);
+    } catch (e) {
+      // handle or rethrow
+      rethrow;
+    }
   }
 
   void _onCampaignChanged(String? name) {
@@ -33,37 +38,44 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   List<FlSpot> _generateSpots() {
     if (_selectedCampaign == null) return [];
-    final filtered = _allDonations.where((d) => d.nama == _selectedCampaign).toList();
-    // Sort by date
-    filtered.sort((a, b) => a.createdAt.compareTo(b.createdAt));
-    return filtered.map((d) => FlSpot(
-      d.createdAt.millisecondsSinceEpoch.toDouble(),
-      d.collected,
-    )).toList();
+    final filtered = _allDonations
+        .where((d) => d.nama == _selectedCampaign)
+        .toList()
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+    return filtered
+        .map((d) => FlSpot(
+              d.createdAt.millisecondsSinceEpoch.toDouble(),
+              d.collected.toDouble(),
+            ))
+        .toList();
   }
 
   @override
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF4D5BFF);
     return Scaffold(
-      appBar: AppBar(title: Text('Laporan'), backgroundColor: headerColor),
+      appBar: AppBar(
+        title: Text('Laporan', style: TextStyle(color: Colors.white)),
+        backgroundColor: headerColor,
+      ),
       body: FutureBuilder<void>(
         future: _fetchFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final campaigns = _allDonations.map((d) => d.nama).toSet().toList();
           final spots = _generateSpots();
-          final minX = spots.isEmpty ? 0 : spots.first.x;
-          final maxX = spots.isEmpty ? 0 : spots.last.x;
+          final minX = spots.isEmpty ? 0.0 : spots.first.x;
+          final maxX = spots.isEmpty ? 0.0 : spots.last.x;
 
           return Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16.0),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 DropdownButtonFormField<String>(
                   decoration: InputDecoration(
@@ -73,25 +85,31 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
                   ),
                   value: _selectedCampaign,
-                  items: campaigns
-                      .map((name) => DropdownMenuItem(value: name, child: Text(name)))
-                      .toList(),
+                  items: campaigns.map((name) {
+                    return DropdownMenuItem(
+                        value: name, child: Text(name));
+                  }).toList(),
                   onChanged: _onCampaignChanged,
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Expanded(
                   child: _selectedCampaign == null
-                      ? Center(child: Text('Pilih kampanye untuk lihat grafik'))
+                      ? Center(
+                          child:
+                              Text('Pilih kampanye untuk melihat grafik'),
+                        )
                       : LineChart(
                           LineChartData(
-                            minX: double.parse(minX.toString()),
-                            maxX: double.parse(maxX.toString()),
+                            minX: minX,
+                            maxX: maxX,
                             lineBarsData: [
                               LineChartBarData(
                                 spots: spots,
                                 isCurved: true,
                                 barWidth: 3,
                                 dotData: FlDotData(show: false),
+                                color: headerColor,
+                                belowBarData: BarAreaData(show: false),
                               ),
                             ],
                             titlesData: FlTitlesData(
@@ -100,9 +118,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   showTitles: true,
                                   interval: spots.length > 1
                                       ? (maxX - minX) / (spots.length - 1)
-                                      : 1,
-                                  getTitlesWidget: (v, _) {
-                                    final dt = DateTime.fromMillisecondsSinceEpoch(v.toInt());
+                                      : 1.0,
+                                  getTitlesWidget: (value, meta) {
+                                    final dt = DateTime.fromMillisecondsSinceEpoch(
+                                        value.toInt());
                                     return Text(
                                       DateFormat('dd MMM').format(dt),
                                       style: TextStyle(fontSize: 10),
