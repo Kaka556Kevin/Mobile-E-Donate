@@ -1,6 +1,6 @@
 # edonate
 
-A new Flutter project.
+A new Mobile CMS for E-Donate.
 
 ## Getting Started
 
