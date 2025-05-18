@@ -2,13 +2,13 @@
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../widgets/custom_image_picker.dart';
 import '../services/api_service.dart';
 import '../models/donation.dart';
+import '../widgets/custom_image_picker.dart';
 
 class DonationFormScreen extends StatefulWidget {
   final Donation? donation;
-  DonationFormScreen({this.donation});
+  const DonationFormScreen({Key? key, this.donation}) : super(key: key);
 
   @override
   _DonationFormScreenState createState() => _DonationFormScreenState();
@@ -30,7 +30,7 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
     _target = widget.donation?.target ?? 0.0;
   }
 
-  Future<void> _submit() async {
+  Future<void> _submitForm() async {
     if (!_formKey.currentState!.validate()) return;
     _formKey.currentState!.save();
     setState(() => _isLoading = true);
@@ -39,22 +39,22 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
       id: widget.donation?.id ?? 0,
       nama: _nama,
       deskripsi: _deskripsi,
-      gambar: widget.donation?.gambar ?? '',
       target: _target,
-      collected: widget.donation?.collected ?? 0.0,
+      gambar: widget.donation?.gambar ?? '',
+      collected: widget.donation?.collected ?? 0,
       createdAt: widget.donation?.createdAt ?? DateTime.now(),
     );
 
     try {
       if (widget.donation == null) {
-        await ApiService().upsertDonation(donation, _imageFile);
+        await ApiService().createDonation(donation, _imageFile);
       } else {
-        await ApiService().upsertDonation(donation, _imageFile);
+        await ApiService().updateDonation(donation, _imageFile);
       }
       Navigator.pop(context, true);
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: \$e')),
+        SnackBar(content: Text('Error: ${e.toString()}')),
       );
     } finally {
       setState(() => _isLoading = false);
@@ -65,7 +65,7 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.donation != null ? 'Edit Donasi' : 'Tambah Donasi'),
+        title: Text(widget.donation == null ? 'Tambah Donasi' : 'Edit Donasi'),
       ),
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
@@ -74,40 +74,41 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TextFormField(
                       initialValue: _nama,
-                      decoration: InputDecoration(labelText: 'Nama', filled: true),
+                      decoration: InputDecoration(labelText: 'Nama'),
                       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _nama = v!,
+                      onSaved: (v) => _nama = v!.trim(),
                     ),
                     SizedBox(height: 12),
                     TextFormField(
                       initialValue: _deskripsi,
-                      decoration: InputDecoration(labelText: 'Deskripsi', filled: true),
+                      decoration: InputDecoration(labelText: 'Deskripsi'),
                       maxLines: 3,
                       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _deskripsi = v!,
+                      onSaved: (v) => _deskripsi = v!.trim(),
                     ),
                     SizedBox(height: 12),
                     TextFormField(
-                      initialValue: _target.toStringAsFixed(0),
-                      decoration: InputDecoration(labelText: 'Target Terkumpul', filled: true),
+                      initialValue: _target.toString(),
+                      decoration: InputDecoration(labelText: 'Target Terkumpul'),
                       keyboardType: TextInputType.number,
                       validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-                      onSaved: (v) => _target = double.tryParse(v!) ?? 0.0,
+                      onSaved: (v) => _target = double.parse(v!),
                     ),
-                    SizedBox(height: 16),
-                    CustomImagePicker(
-                      onImageSelected: (file) => _imageFile = file,
-                      buttonText: 'Pilih Gambar',
-                      previewHeight: 150,
-                    ),
+                    SizedBox(height: 20),
+                    CustomImagePicker(onImageSelected: (file) {
+                      _imageFile = file;
+                    }),
                     SizedBox(height: 24),
-                    ElevatedButton(
-                      onPressed: _submit,
-                      child: Text(widget.donation != null ? 'Update' : 'Simpan'),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed: _submitForm,
+                        child: Text(widget.donation == null ? 'Simpan' : 'Update'),
+                      ),
                     ),
                   ],
                 ),
