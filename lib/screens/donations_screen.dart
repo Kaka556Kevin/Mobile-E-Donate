@@ -132,8 +132,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Target: Rp \${d.target.toInt()}'),
-                          Text('Collected: Rp \${d.collected.toInt()}'),
+                          Text('Target: Rp ${d.target.toInt()}'),
+                          Text('Collected: Rp ${d.collected.toInt()}'),
                         ],
                       ),
                       trailing: Container(

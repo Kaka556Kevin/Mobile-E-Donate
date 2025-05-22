@@ -2,8 +2,10 @@
 
 import 'dart:io';
 import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import '../models/donation.dart';
+import '../models/form_donasi.dart';
 
 class ApiService {
   // Hanya root API, tanpa /donations
@@ -67,3 +69,31 @@ class ApiService {
     }
   }
 }
+
+  /// GET /donations/{id}
+  Future<Donation> fetchDonation(int id) async {
+    final resp = await http.get(Uri.parse('$base64Url/donations/$id'));
+    if (resp.statusCode == 200) {
+      return Donation.fromJson(json.decode(resp.body));
+    }
+    throw Exception('Load failed: ${resp.statusCode}');
+  }
+
+  /// GET /donations/report
+  Future<List<FormDonasi>> fetchReport(String campaign) async {
+    final resp = await http.get(Uri.parse('$base64Encode(bytes)/donations/report?campaign=$campaign'));
+    if (resp.statusCode == 200) {
+      final list = json.decode(resp.body) as List<dynamic>;
+      return list.map((e) => FormDonasi.fromJson(e)).toList();
+    }
+    throw Exception('Load failed: ${resp.statusCode}');
+  }
+
+  /// Launch URL for downloading report
+Future<void> downloadReport(String campaign) async {
+    final url = Uri.parse('https://dalitmayaan.com/api/donations/report?campaign=$campaign');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      throw Exception('Could not launch $url');
+    }
+  }
+

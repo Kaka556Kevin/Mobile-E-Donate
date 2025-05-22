@@ -9,6 +9,10 @@ class Donation {
   final double collected;
   final DateTime createdAt;
 
+  // Tambahan
+  final String? status;
+  final List<Donatur>? donaturs;
+
   Donation({
     required this.id,
     required this.nama,
@@ -17,6 +21,8 @@ class Donation {
     required this.target,
     required this.collected,
     required this.createdAt,
+    this.status,
+    this.donaturs,
   });
 
   factory Donation.fromJson(Map<String, dynamic> json) {
@@ -44,6 +50,34 @@ class Donation {
       target: parsedTarget,
       collected: parsedCollected,
       createdAt: DateTime.parse(json['created_at'] as String),
+      status: json['status'],
+      donaturs: json['donaturs'] != null
+          ? (json['donaturs'] as List<dynamic>)
+              .map((e) => Donatur.fromJson(e))
+              .toList()
+          : null,
     );
   }
 }
+
+class Donatur {
+  final String nama;
+  final int nominal;
+  final DateTime? tanggal;
+
+  Donatur({
+    required this.nama,
+    required this.nominal,
+    this.tanggal,
+  });
+
+  factory Donatur.fromJson(Map<String, dynamic> json) {
+    return Donatur(
+      nama: json['nama'] ?? '-',
+      nominal: int.tryParse(json['nominal'].toString()) ?? 0,
+      tanggal: json['created_at'] != null
+          ? DateTime.tryParse(json['created_at'])
+          : null,
+    );
+  }
+} 
