@@ -77,14 +77,20 @@
 //   }
 // }
 
-// lib/main.dart
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/donations_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/funds_screen.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized(); 
+  await initializeDateFormatting('id_ID'); 
+  Intl.defaultLocale = 'id_ID';
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override

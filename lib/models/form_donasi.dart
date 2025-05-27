@@ -1,5 +1,3 @@
-// lib/models/form_donasi.dart
-
 class FormDonasi {
   final int id;
   final DateTime tanggal;
@@ -16,7 +14,6 @@ class FormDonasi {
   });
 
   factory FormDonasi.fromJson(Map<String, dynamic> json) {
-    // Tangani nominal yang mungkin null, num, atau String
     final rawNominal = json['nominal'];
     final parsedNominal = rawNominal == null
         ? 0
