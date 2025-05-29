@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/donation.dart';
 import '../models/form_donasi.dart';
+import '../models/uang_donasi.dart';
 
 class ApiService {
   // Hanya root API
@@ -88,4 +89,30 @@ class ApiService {
       throw Exception('Delete failed: ${resp.statusCode}');
     }
   }
+
+  /// Fetch all UangDonasi records from backend
+  Future<List<UangDonasi>> fetchAllUangDonasi() async {
+    final response = await http.get(Uri.parse('$baseUrl/uang-donasi'));
+    if (response.statusCode == 200) {
+      final List data = json.decode(response.body);
+      return data.map((e) => UangDonasi.fromJson(e)).toList();
+    } else {
+      throw Exception('Failed to load uang donasi records');
+    }
+  }
+
+  /// Create a new UangDonasi record
+  Future<UangDonasi> createUangDonasi(Map<String, dynamic> payload) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/uang-donasi'),
+      headers: {'Content-Type': 'application/json'},
+      body: json.encode(payload),
+    );
+    if (response.statusCode == 201) {
+      return UangDonasi.fromJson(json.decode(response.body));
+    } else {
+      throw Exception('Failed to create uang donasi');
+    }
+  }
+
 }
