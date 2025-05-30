@@ -36,3 +36,13 @@ android {
 flutter {
     source = "../.."
 }
+
+subprojects { project ->
+    project.plugins.withId("com.android.library") {
+        project.extensions.findByType(com.android.build.gradle.LibraryExtension)?.let { libExt ->
+            if (libExt.namespace == null || libExt.namespace.isEmpty()) {
+                libExt.namespace = "com.example.edonate.${project.name}"
+            }
+        }
+    }
+}

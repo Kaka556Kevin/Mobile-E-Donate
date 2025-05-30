@@ -7,11 +7,13 @@ import 'screens/donations_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/funds_screen.dart';
 import 'screens/create_fund_record_screen.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('id_ID');
   Intl.defaultLocale = 'id_ID';
+  await Hive.initFlutter();
   runApp(MyApp());
 }
 
@@ -20,6 +22,11 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext ctx) => MaterialApp(
         title: 'E-Donate CMS',
         theme: ThemeData(
+          appBarTheme: AppBarTheme(
+            backgroundColor: Colors.blue[800],
+            foregroundColor: Colors.black,
+            elevation: 0,
+          ),
           primaryColor: Color(0xFF4D5BFF),
           scaffoldBackgroundColor: Colors.grey[100],
         ),

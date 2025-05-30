@@ -92,7 +92,7 @@ class ApiService {
 
   /// Fetch all UangDonasi records from backend
   Future<List<UangDonasi>> fetchAllUangDonasi() async {
-    final response = await http.get(Uri.parse('$baseUrl/uang-donasi'));
+    final response = await http.get(Uri.parse('$baseUrl/donations'));
     if (response.statusCode == 200) {
       final List data = json.decode(response.body);
       return data.map((e) => UangDonasi.fromJson(e)).toList();

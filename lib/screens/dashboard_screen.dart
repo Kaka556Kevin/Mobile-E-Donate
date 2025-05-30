@@ -52,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             children: [
               // — Info cards
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 child: Row(
                   children: [
                     Expanded(child: _infoCard('Campaigns', totalCamp.toString())),
@@ -62,10 +62,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
 
               // — Donasi Terkini
-              Expanded(
+              Flexible(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: PaginatedDataTable(
+                    dataRowHeight: totalColl > 0 ? 48 : 32,
                     header: Text('Donasi Terkini'),
                     columns: [
                       DataColumn(label: Text('Tanggal')),
@@ -96,7 +97,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               SizedBox(height: 8),
 
               // — Daftar Donatur
-              Expanded(
+              Flexible(
                 child: FutureBuilder<List<FormDonasi>>(
                   future: _futureDonors,
                   builder: (ctx, snapDonors) {
@@ -118,6 +119,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     return SingleChildScrollView(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: PaginatedDataTable(
+                        dataRowHeight: 48,
                         header: Text('Daftar Donatur'),
                         columns: [
                           DataColumn(label: Text('Tanggal')),

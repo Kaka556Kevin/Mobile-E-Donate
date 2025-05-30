@@ -1,247 +1,228 @@
-// // lib/screens/funds_screen.dart
-
-// import 'package:flutter/material.dart';
-// import 'package:intl/intl.dart';
-// import '../services/api_service.dart';
-// import '../models/donation.dart';
-
-// class FundsScreen extends StatefulWidget {
-//   @override
-//   _FundsScreenState createState() => _FundsScreenState();
-// }
-
-// class _FundsScreenState extends State<FundsScreen> {
-//   String? _selectedCampaign;
-//   List<Donation> _allDonations = [];
-//   Donation? _selectedDonation;
-//   late Future<void> _fetchFuture;
-
-//   @override
-//   void initState() {
-//     super.initState();
-//     _fetchFuture = _loadDonations();
-//   }
-
-//   Future<void> _loadDonations() async {
-//     final list = await ApiService().fetchAllDonations();
-//     setState(() {
-//       _allDonations = list;
-//     });
-//   }
-
-//   void _onCampaignChanged(String? name) {
-//     setState(() {
-//       _selectedCampaign = name;
-//       _selectedDonation =
-//           _allDonations.firstWhere((d) => d.nama == name, orElse: () => _allDonations.first);
-//     });
-//   }
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//       appBar: AppBar(
-//         title: Text('Uang Donasi'),
-//       ),
-//       body: FutureBuilder<void>(
-//         future: _fetchFuture,
-//         builder: (context, snapshot) {
-//           if (snapshot.connectionState == ConnectionState.waiting) {
-//             return Center(child: CircularProgressIndicator());
-//           } else if (snapshot.hasError) {
-//             return Center(child: Text('Error: ${snapshot.error}'));
-//           }
-//           return Padding(
-//             padding: EdgeInsets.all(16),
-//             child: Column(
-//               crossAxisAlignment: CrossAxisAlignment.stretch,
-//               children: [
-//                 DropdownButtonFormField<String>(
-//                   decoration: InputDecoration(
-//                     hintText: 'Pilih Kampanye',
-//                     filled: true,
-//                     fillColor: Colors.white,
-//                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-//                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-//                   ),
-//                   items: _allDonations
-//                       .map((d) => d.nama)
-//                       .toSet()
-//                       .map((name) => DropdownMenuItem(value: name, child: Text(name)))
-//                       .toList(),
-//                   value: _selectedCampaign,
-//                   onChanged: _onCampaignChanged,
-//                 ),
-//                 SizedBox(height: 16),
-//                 if (_selectedDonation != null) ...[
-//                   _buildInfoCard(
-//                     'Target',
-//                     NumberFormat.simpleCurrency(locale: 'id_ID', name: 'Rp ')
-//                         .format(_selectedDonation!.target),
-//                   ),
-//                   SizedBox(height: 8),
-//                   _buildInfoCard(
-//                     'Terkumpul',
-//                     NumberFormat.simpleCurrency(locale: 'id_ID', name: 'Rp ')
-//                         .format(_selectedDonation!.collected),
-//                   ),
-//                   SizedBox(height: 8),
-//                   _buildInfoCard(
-//                     'Tersedia',
-//                     NumberFormat.simpleCurrency(locale: 'id_ID', name: 'Rp ')
-//                         .format(_selectedDonation!.target - _selectedDonation!.collected),
-//                   ),
-//                 ],
-//               ],
-//             ),
-//           );
-//         },
-//       ),
-//     );
-//   }
-
-//   Widget _buildInfoCard(String title, String value) {
-//     return Container(
-//       padding: EdgeInsets.all(12),
-//       decoration: BoxDecoration(
-//         color: Colors.white,
-//         borderRadius: BorderRadius.circular(8),
-//         boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black12)],
-//       ),
-//       child: Column(
-//         crossAxisAlignment: CrossAxisAlignment.start,
-//         children: [
-//           Text(title, style: TextStyle(color: Colors.grey[600])),
-//           SizedBox(height: 8),
-//           Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-//         ],
-//       ),
-//     );
-//   }
-// }
-
 // lib/screens/funds_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../services/api_service.dart';
+import '../services/local_fund_service.dart';
 import '../models/donation.dart';
-import '../models/uang_donasi.dart';
 
 class FundsScreen extends StatefulWidget {
+  const FundsScreen({Key? key}) : super(key: key);
+
   @override
   _FundsScreenState createState() => _FundsScreenState();
 }
 
 class _FundsScreenState extends State<FundsScreen> {
   String? _selectedCampaign;
-  List<Donation> _campaigns = [];
-  List<UangDonasi> _records = [];
+  final List<Donation> _campaigns = [];
+  List<FundRecord> _localRecords = [];
+  final Set<int> _selectedRecordKeys = {};
   late Future<void> _initFuture;
+  late LocalFundService _localService;
 
   @override
   void initState() {
     super.initState();
+    _localService = LocalFundService();
     _initFuture = _initData();
   }
 
   Future<void> _initData() async {
-    // Load campaigns and initial records
-    _campaigns = await ApiService().fetchAllDonations();
-    if (_campaigns.isNotEmpty) {
-      _selectedCampaign = _campaigns.first.nama;
-      await _loadRecords(_selectedCampaign!);
+    await _localService.init();
+    final campaigns = await ApiService().fetchAllDonations();
+    setState(() {
+      _campaigns.clear();
+      _campaigns.addAll(campaigns);
+      if (_campaigns.isNotEmpty) {
+        _selectedCampaign = _campaigns.first.nama;
+      }
+    });
+    if (_selectedCampaign != null) {
+      await _loadLocalRecords(_selectedCampaign!);
     }
-    setState(() {});
   }
 
-  Future<void> _loadRecords(String campaignName) async {
-    final all = await ApiService().fetchAllUangDonasi();
-    // Filter records by campaign name
-    _records = all.where((r) => r.namaDonasi == campaignName).toList();
-    setState(() {});
+  Future<void> _loadLocalRecords(String campaignName) async {
+    final all = _localService.getAll();
+    final campaign = _campaigns.firstWhere((d) => d.nama == campaignName);
+    final records = all.where((r) => r.donationId == campaign.id).toList();
+    setState(() {
+      _localRecords = records;
+      _selectedRecordKeys.clear();
+    });
   }
 
   void _onCampaignChanged(String? newName) async {
     if (newName == null) return;
     setState(() => _selectedCampaign = newName);
-    await _loadRecords(newName);
+    await _loadLocalRecords(newName);
   }
 
   void _onNewCatatan() async {
-    // Navigate to a create screen (already implemented) or show form
-    await Navigator.pushNamed(context, '/uang-donasi/create', arguments: _selectedCampaign);
-    if (_selectedCampaign != null) {
-      await _loadRecords(_selectedCampaign!);
-    }
+    if (_selectedCampaign == null) return;
+    final campaign = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+    await Navigator.pushNamed(
+      context,
+      '/uang-donasi/create',
+      arguments: campaign,
+    );
+    await _loadLocalRecords(_selectedCampaign!);
+  }
+
+  double get _sumUangKeluar =>
+      _localRecords.fold(0.0, (sum, r) => sum + (r.uangKeluar as num));
+
+  Future<void> _editRecord(FundRecord record) async {
+    final penerimaCtrl = TextEditingController(text: record.penerima);
+    final uangCtrl = TextEditingController(text: record.uangKeluar.toString());
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Edit Catatan'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: penerimaCtrl,
+              decoration: const InputDecoration(labelText: 'Penerima'),
+            ),
+            TextField(
+              controller: uangCtrl,
+              decoration: const InputDecoration(labelText: 'Uang Keluar'),
+              keyboardType: TextInputType.number,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              record.penerima = penerimaCtrl.text;
+              record.uangKeluar = num.tryParse(uangCtrl.text) ?? record.uangKeluar;
+              await _localService.updateRecord(record.key as int, record);
+              await _loadLocalRecords(_selectedCampaign!);
+              Navigator.pop(context);
+            },
+            child: const Text('Simpan'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Uang Donasi')),
+      appBar: AppBar(title: const Text('Uang Donasi')),
       body: FutureBuilder<void>(
         future: _initFuture,
         builder: (ctx, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
+          if (_campaigns.isEmpty) {
+            return const Center(child: Text('Tidak ada kampanye'));
+          }
+          final campaign = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+          final available = campaign.collected - _sumUangKeluar;
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Dropdown campaign
                 DropdownButtonFormField<String>(
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     hintText: 'Pilih Kampanye',
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
                     contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   items: _campaigns.map((d) => d.nama).toSet().map(
-                    (name) => DropdownMenuItem(value: name, child: Text(name)),
-                  ).toList(),
+                        (name) => DropdownMenuItem(value: name, child: Text(name)),
+                      ).toList(),
                   value: _selectedCampaign,
                   onChanged: _onCampaignChanged,
                 ),
-                SizedBox(height: 16),
-                if (_selectedCampaign != null) ...[
-                  // Info cards
-                  _buildCard('Target', _formatCurrency(_campaigns.firstWhere((d) => d.nama == _selectedCampaign!).target)),
-                  SizedBox(height: 8),
-                  _buildCard('Terkumpul', _formatCurrency(_campaigns.firstWhere((d) => d.nama == _selectedCampaign!).collected)),
-                  SizedBox(height: 8),
-                  _buildCard('Tersedia', _formatCurrency(
-                    _campaigns.firstWhere((d) => d.nama == _selectedCampaign!).target -
-                    _campaigns.firstWhere((d) => d.nama == _selectedCampaign!).collected,
-                  )),
-                  SizedBox(height: 16),
-                  // New Catatan button
-                  ElevatedButton.icon(
-                    onPressed: _onNewCatatan,
-                    icon: Icon(Icons.add),
-                    label: Text('New Catatan'),
-                  ),
-                  SizedBox(height: 16),
-                  // List catatan
-                  Expanded(
-                    child: _records.isEmpty
-                        ? Center(child: Text('Belum ada catatan'))
-                        : ListView.separated(
-                            itemCount: _records.length,
-                            separatorBuilder: (_, __) => Divider(),
-                            itemBuilder: (_, i) {
-                              final r = _records[i];
-                              return ListTile(
-                                title: Text(r.namaDonasi),
-                                subtitle: Text(_formatCurrency(r.uangMasuk) + ' in/out: ' + _formatCurrency(r.uangKeluar)),
-                                trailing: Text('Saldo: ' + _formatCurrency(r.saldo)),
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                const SizedBox(height: 16),
+                _buildCard('Target', _formatCurrency(campaign.target)),
+                const SizedBox(height: 8),
+                _buildCard('Terkumpul', _formatCurrency(campaign.collected)),
+                const SizedBox(height: 8),
+                _buildCard('Tersedia', _formatCurrency(available)),
+                const SizedBox(height: 16),
+                ElevatedButton.icon(
+                  onPressed: _onNewCatatan,
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Catatan'),
+                ),
+                const SizedBox(height: 16),
+                Expanded(
+                  child: _localRecords.isEmpty
+                      ? const Center(child: Text('Belum ada catatan'))
+                      : ListView.builder(
+                          itemCount: _localRecords.length,
+                          itemBuilder: (_, i) {
+                            final r = _localRecords[i];
+                            final isSelected = _selectedRecordKeys.contains(r.key as int);
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Colors.blue[50] : Colors.grey[100],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSelected ? Colors.blue : Colors.grey[300]!,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Checkbox(
+                                    value: isSelected,
+                                    onChanged: (v) {
+                                      setState(() {
+                                        if (v == true) {
+                                          _selectedRecordKeys.add(r.key as int);
+                                        } else {
+                                          _selectedRecordKeys.remove(r.key as int);
+                                        }
+                                      });
+                                    },
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          r.penerima,
+                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text('Rp ${_formatCurrency(r.uangKeluar)}'),
+                                      ],
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.edit, color: Colors.green),
+                                    onPressed: () => _editRecord(r),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    onPressed: () async {
+                                      await _localService.deleteRecord(r.key as int);
+                                      await _loadLocalRecords(_selectedCampaign!);
+                                    },
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        ),
+                ),
               ],
             ),
           );
@@ -252,18 +233,18 @@ class _FundsScreenState extends State<FundsScreen> {
 
   Widget _buildCard(String label, String value) {
     return Container(
-      padding: EdgeInsets.all(12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black12)],
+        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600])),
-          SizedBox(height: 4),
-          Text(value, style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 4),
+          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
