@@ -1,2 +1,0 @@
-C:/proyek mobile/edonatemobile/android/app/.cxx/Debug/1z6q1f1w/x86/CMakeFiles/edit_cache.dir
-C:/proyek mobile/edonatemobile/android/app/.cxx/Debug/1z6q1f1w/x86/CMakeFiles/rebuild_cache.dir

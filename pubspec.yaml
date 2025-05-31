@@ -50,6 +50,9 @@ dependencies:
   excel: ^2.0.0              # read/write .xlsx
   file_selector: ^0.9.4        # pick import .xlsx
   share_plus: ^8.0.0         # share/export file
+  permission_handler: ^12.0.0+1
+  permission_handler_android: ^13.0.1
+
 
 dev_dependencies:
   flutter_test:

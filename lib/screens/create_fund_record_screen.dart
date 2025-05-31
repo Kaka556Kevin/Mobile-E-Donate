@@ -74,7 +74,7 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error menyimpan: \$e')));
+          .showSnackBar(SnackBar(content: Text('Error menyimpan: $e')));
     } finally {
       setState(() => _loading = false);
     }
@@ -87,8 +87,8 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
 
   String _format(num value) {
     return value.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+\b)'),
-      (m) => '\${m[1]}.',
+      RegExp(r'(d)(?=(d{3})+b)'),
+      (m) => '${m[1]}.',
     );
   }
 
