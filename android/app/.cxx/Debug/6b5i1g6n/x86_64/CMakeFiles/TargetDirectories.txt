@@ -1,0 +1,2 @@
+C:/Users/user/OneDrive/Documents/GitHub/Mobile-E-Donate/android/app/.cxx/Debug/6b5i1g6n/x86_64/CMakeFiles/edit_cache.dir
+C:/Users/user/OneDrive/Documents/GitHub/Mobile-E-Donate/android/app/.cxx/Debug/6b5i1g6n/x86_64/CMakeFiles/rebuild_cache.dir
