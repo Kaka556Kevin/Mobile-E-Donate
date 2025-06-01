@@ -31,6 +31,7 @@ class _DonationsScreenState extends State<DonationsScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // ---------- HEADER (tanpa tombol back) ----------
         Container(
           color: Color(0xFF4D5BFF),
           padding: EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 16),
@@ -43,9 +44,10 @@ class _DonationsScreenState extends State<DonationsScreen> {
                     Text(
                       'Kelola Donasi',
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold),
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     SizedBox(height: 4),
                     Text(
@@ -55,13 +57,12 @@ class _DonationsScreenState extends State<DonationsScreen> {
                   ],
                 ),
               ),
-              GestureDetector(
-                onTap: () => Navigator.pop(context),
-                child: Icon(Icons.arrow_back, color: Colors.white),
-              ),
+              // Tombol back dihapus karena tidak diperlukan
             ],
           ),
         ),
+
+        // ---------- PENCARIAN + TAMBAH DONASI ----------
         Padding(
           padding: EdgeInsets.all(16),
           child: Row(
@@ -74,7 +75,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
                     fillColor: Colors.white,
                     filled: true,
                     prefixIcon: Icon(Icons.search),
-                    contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    contentPadding:
+                        EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -99,6 +101,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
             ],
           ),
         ),
+
+        // ---------- LIST DONASI ----------
         Expanded(
           child: FutureBuilder<List<Donation>>(
             future: _futureDonations,
@@ -109,9 +113,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
               final list = snapshot.data!
-                  .where((d) => d.nama.toLowerCase().contains(
-                        _searchCtrl.text.toLowerCase(),
-                      ))
+                  .where((d) =>
+                      d.nama.toLowerCase().contains(_searchCtrl.text.toLowerCase()))
                   .toList();
               return ListView.builder(
                 padding: EdgeInsets.symmetric(horizontal: 16),
@@ -137,7 +140,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
                         ],
                       ),
                       trailing: Container(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 4, horizontal: 8),
                         decoration: BoxDecoration(
                           color: d.collected >= d.target
                               ? Colors.green[100]
