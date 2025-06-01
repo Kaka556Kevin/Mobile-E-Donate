@@ -3,7 +3,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../models/donation.dart';
 import '../services/api_service.dart';
 
@@ -22,39 +21,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _futureDonations = ApiService().fetchAllDonations();
   }
 
-  Future<void> _openReport() async {
-    if (_selectedCampaign == null) return;
-    final url = Uri.parse(
-        'https://dalitmayaan.com/api/donations/report?campaign=$_selectedCampaign');
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Gagal membuka laporan.')));
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF4D5BFF);
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Grafik Donasi'),
+        title: const Text('Grafik Donasi'),
         backgroundColor: headerColor,
       ),
       body: FutureBuilder<List<Donation>>(
         future: _futureDonations,
         builder: (ctx, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return Center(child: Text('Error: \${snapshot.error}'));
+            return Center(child: Text('Error: ${snapshot.error}'));
           }
 
           final data = snapshot.data!;
           final campaigns = data.map((d) => d.nama).toSet().toList();
           if (campaigns.isEmpty) {
-            return Center(child: Text('Tidak ada data kampanye.'));
+            return const Center(child: Text('Tidak ada data kampanye.'));
           }
           if (_selectedCampaign == null) {
             _selectedCampaign = campaigns.first;
@@ -75,6 +64,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
           );
 
           final maxY = (donation.collected * 1.2).ceilToDouble();
+          final targetFormatted = NumberFormat.simpleCurrency(
+                  locale: 'id_ID', name: 'Rp', decimalDigits: 0)
+              .format(donation.target);
+          final collectedFormatted = NumberFormat.simpleCurrency(
+                  locale: 'id_ID', name: 'Rp', decimalDigits: 0)
+              .format(donation.collected);
 
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -97,7 +92,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       .toList(),
                   onChanged: (v) => setState(() => _selectedCampaign = v),
                 ),
-                SizedBox(height: 16),
+                const SizedBox(height: 16),
                 Expanded(
                   child: BarChart(
                     BarChartData(
@@ -113,7 +108,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                 padding: const EdgeInsets.only(top: 8.0),
                                 child: Text(
                                   donation.nama,
-                                  style: TextStyle(fontSize: 12),
+                                  style: const TextStyle(fontSize: 12),
                                 ),
                               );
                             },
@@ -129,10 +124,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                                   NumberFormat.compactCurrency(
                                           locale: 'id_ID', name: 'Rp')
                                       .format(value),
-                                  style: TextStyle(fontSize: 12),
+                                  style: const TextStyle(fontSize: 12),
                                 );
                               }
-                              return SizedBox.shrink();
+                              return const SizedBox.shrink();
                             },
                           ),
                         ),
@@ -140,25 +135,29 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ),
                 ),
-                SizedBox(height: 16),
-                _InfoCard(
-                  label: 'Donasi Terkumpul (Rp)',
-                  value: NumberFormat.simpleCurrency(
-                          locale: 'id_ID', name: 'Rp', decimalDigits: 0)
-                      .format(donation.collected),
+                const SizedBox(height: 16),
+
+                // Replace button with two InfoCards at bottom:
+                Row(
+                  children: [
+                    // Left: Target Donasi
+                    Expanded(
+                      child: _InfoCard(
+                        label: 'Target Donasi (Rp)',
+                        value: targetFormatted,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Right: Donasi Terkumpul
+                    Expanded(
+                      child: _InfoCard(
+                        label: 'Donasi Terkumpul (Rp)',
+                        value: collectedFormatted,
+                      ),
+                    ),
+                  ],
                 ),
-                SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style:
-                        ElevatedButton.styleFrom(backgroundColor: headerColor),
-                    onPressed: _openReport,
-                    child: Text('DOWNLOAD Laporan',
-                        style: TextStyle(color: Colors.white)),
-                  ),
-                ),
+                const SizedBox(height: 0), // no extra gap needed
               ],
             ),
           );
@@ -176,20 +175,20 @@ class _InfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 4),
-      padding: EdgeInsets.all(12),
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        boxShadow: [BoxShadow(blurRadius: 4, color: Colors.black12)],
+        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600])),
-          SizedBox(height: 8),
+          const SizedBox(height: 8),
           Text(value,
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );

@@ -59,7 +59,8 @@ class _FundsScreenState extends State<FundsScreen> {
   Future<void> _loadLocalRecords(String campaignName) async {
     final allRecords = _localService.getAll();
     final campaign = _campaigns.firstWhere((d) => d.nama == campaignName);
-    final matched = allRecords.where((r) => r.donationId == campaign.id).toList();
+    final matched =
+        allRecords.where((r) => r.donationId == campaign.id).toList();
     if (!mounted) return;
     setState(() {
       _localRecords = matched;
@@ -75,7 +76,8 @@ class _FundsScreenState extends State<FundsScreen> {
 
   void _onNewCatatan() async {
     if (_selectedCampaign == null) return;
-    final camp = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+    final camp = _campaigns
+        .firstWhere((d) => d.nama == _selectedCampaign!);
     await Navigator.pushNamed(context, '/uang-donasi/create', arguments: camp);
     if (!mounted) return;
     await _loadLocalRecords(_selectedCampaign!);
@@ -86,7 +88,8 @@ class _FundsScreenState extends State<FundsScreen> {
 
   Future<void> _editRecord(FundRecord record) async {
     final penerimaCtrl = TextEditingController(text: record.penerima);
-    final uangCtrl = TextEditingController(text: record.uangKeluar.toString());
+    final uangCtrl =
+        TextEditingController(text: record.uangKeluar.toString());
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
@@ -106,7 +109,9 @@ class _FundsScreenState extends State<FundsScreen> {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Batal')),
+          TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal')),
           ElevatedButton(
             onPressed: () async {
               record.penerima = penerimaCtrl.text;
@@ -154,6 +159,34 @@ class _FundsScreenState extends State<FundsScreen> {
     });
   }
 
+  Future<void> _confirmDeleteRecord(int key) async {
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Konfirmasi Hapus Catatan'),
+        content:
+            const Text('Apakah Anda yakin ingin menghapus catatan ini?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete == true) {
+      await _localService.deleteRecord(key);
+      if (!mounted) return;
+      await _loadLocalRecords(_selectedCampaign!);
+    }
+  }
+
   /// ==================== METODE EXPORT ====================
 
   Future<void> _exportSelectedToExcel() async {
@@ -177,7 +210,8 @@ class _FundsScreenState extends State<FundsScreen> {
     }
 
     // Step 2: ubah data ke Map<String, dynamic> agar compute() jadi cepat
-    final campaignObj = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+    final campaignObj = _campaigns
+        .firstWhere((d) => d.nama == _selectedCampaign!);
     final Map<String, dynamic> campaignMap = {
       'id': campaignObj.id,
       'nama': campaignObj.nama,
@@ -196,12 +230,12 @@ class _FundsScreenState extends State<FundsScreen> {
     try {
       // Panggil isolate untuk generate .xlsx
       final String? resultPath = await compute(
-  _generateExcelAndSave,
-  <String, dynamic>{
-    'records': recordsMap,
-    'campaign': campaignMap,
-  },
-);
+        _generateExcelAndSave,
+        <String, dynamic>{
+          'records': recordsMap,
+          'campaign': campaignMap,
+        },
+      );
 
       if (!mounted) return;
       if (resultPath == null) {
@@ -225,10 +259,13 @@ class _FundsScreenState extends State<FundsScreen> {
       setState(() => _isExporting = false);
     }
   }
+
   /// Fungsi untuk generate file Excel dan menyimpannya
-  static Future<String?> _generateExcelAndSave(Map<String, dynamic> params) async {
+  static Future<String?> _generateExcelAndSave(
+      Map<String, dynamic> params) async {
     final List<dynamic> recs = params['records'] as List<dynamic>;
-    final Map<String, dynamic> camp = params['campaign'] as Map<String, dynamic>;
+    final Map<String, dynamic> camp =
+        params['campaign'] as Map<String, dynamic>;
 
     // 1) Buat workbook baru
     final excel = Excel.createExcel();
@@ -236,22 +273,25 @@ class _FundsScreenState extends State<FundsScreen> {
     final sheetObject = excel[sheetName];
 
     // 2) Tulis header
-    sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value =
-        'Nama Donasi';
-    sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value =
-        'Uang Masuk';
-    sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value =
-        'Uang Keluar';
-    sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value =
-        'Sisa Saldo';
+    sheetObject
+        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+        .value = 'Nama Donasi';
+    sheetObject
+        .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+        .value = 'Uang Masuk';
+    sheetObject
+        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+        .value = 'Uang Keluar';
+    sheetObject
+        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+        .value = 'Sisa Saldo';
 
     // 3) Hitung sumKeluar & sisaSaldo
     double sumKeluar = 0.0;
     for (var recMap in recs) {
       sumKeluar += (recMap['uangKeluar'] as num).toDouble();
     }
-    final availableSaldo =
-        (camp['collected'] as num).toDouble() - sumKeluar;
+    final availableSaldo = (camp['collected'] as num).toDouble() - sumKeluar;
 
     // 4) Tulis data per baris (mulai rowIndex = 1)
     for (var i = 0; i < recs.length; i++) {
@@ -334,7 +374,8 @@ class _FundsScreenState extends State<FundsScreen> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                          borderRadius:
+                              BorderRadius.all(Radius.circular(8)),
                         ),
                         contentPadding:
                             EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -342,8 +383,8 @@ class _FundsScreenState extends State<FundsScreen> {
                       items: _campaigns
                           .map((d) => d.nama)
                           .toSet()
-                          .map(
-                              (name) => DropdownMenuItem(value: name, child: Text(name)))
+                          .map((name) => DropdownMenuItem(
+                              value: name, child: Text(name)))
                           .toList(),
                       value: _selectedCampaign,
                       onChanged: _onCampaignChanged,
@@ -351,7 +392,8 @@ class _FundsScreenState extends State<FundsScreen> {
                     const SizedBox(height: 16),
                     _buildCard('Target', _formatCurrency(campaign.target)),
                     const SizedBox(height: 8),
-                    _buildCard('Terkumpul', _formatCurrency(campaign.collected)),
+                    _buildCard(
+                        'Terkumpul', _formatCurrency(campaign.collected)),
                     const SizedBox(height: 8),
                     _buildCard('Tersedia', _formatCurrency(available)),
                     const SizedBox(height: 16),
@@ -379,13 +421,15 @@ class _FundsScreenState extends State<FundsScreen> {
                                 final isSelected =
                                     _selectedRecordKeys.contains(r.key!);
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin:
+                                      const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
                                     color: isSelected
                                         ? Colors.blue[50]
                                         : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius:
+                                        BorderRadius.circular(8),
                                     border: Border.all(
                                       color: isSelected
                                           ? Colors.blue
@@ -408,9 +452,9 @@ class _FundsScreenState extends State<FundsScreen> {
                                             Text(
                                               r.penerima,
                                               style: const TextStyle(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w500,
-                                              ),
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.w500),
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
@@ -427,12 +471,8 @@ class _FundsScreenState extends State<FundsScreen> {
                                       IconButton(
                                         icon: const Icon(Icons.delete,
                                             color: Colors.red),
-                                        onPressed: () async {
-                                          await _localService.deleteRecord(r.key!);
-                                          if (!mounted) return;
-                                          await _loadLocalRecords(
-                                              _selectedCampaign!);
-                                        },
+                                        onPressed: () =>
+                                            _confirmDeleteRecord(r.key!),
                                       ),
                                     ],
                                   ),
@@ -442,9 +482,11 @@ class _FundsScreenState extends State<FundsScreen> {
                     ),
                     if (_selectedRecordKeys.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
                         child: ElevatedButton.icon(
-                          icon: const Icon(Icons.file_download_outlined),
+                          icon: const Icon(
+                              Icons.file_download_outlined),
                           label: Text(
                             'Export (${_selectedRecordKeys.length} item${_selectedRecordKeys.length > 1 ? 's' : ''})',
                           ),
@@ -466,7 +508,8 @@ class _FundsScreenState extends State<FundsScreen> {
               color: Colors.black45,
               child: const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white),
                 ),
               ),
             ),
@@ -489,8 +532,8 @@ class _FundsScreenState extends State<FundsScreen> {
           Text(label, style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 4),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style: const TextStyle(
+                  fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
