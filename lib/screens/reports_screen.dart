@@ -21,6 +21,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _futureDonations = ApiService().fetchAllDonations();
   }
 
+  void _refreshData() {
+    setState(() {
+      _futureDonations = ApiService().fetchAllDonations();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF4D5BFF);
@@ -29,6 +35,12 @@ class _ReportsScreenState extends State<ReportsScreen> {
       appBar: AppBar(
         title: const Text('Grafik Donasi'),
         backgroundColor: headerColor,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.refresh),
+            onPressed: _refreshData,
+          ),
+        ],
       ),
       body: FutureBuilder<List<Donation>>(
         future: _futureDonations,
@@ -50,8 +62,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
           }
 
           // Ambil data hanya untuk kampanye terpilih
-          final donation =
-              data.firstWhere((d) => d.nama == _selectedCampaign);
+          final donation = data.firstWhere((d) => d.nama == _selectedCampaign);
           final barGroup = BarChartGroupData(
             x: 0,
             barRods: [
@@ -137,10 +148,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Replace button with two InfoCards at bottom:
+                // Replace button dengan dua InfoCards di bawah:
                 Row(
                   children: [
-                    // Left: Target Donasi
+                    // Kiri: Target Donasi
                     Expanded(
                       child: _InfoCard(
                         label: 'Target Donasi (Rp)',
@@ -148,7 +159,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       ),
                     ),
                     const SizedBox(width: 12),
-                    // Right: Donasi Terkumpul
+                    // Kanan: Donasi Terkumpul
                     Expanded(
                       child: _InfoCard(
                         label: 'Donasi Terkumpul (Rp)',
@@ -157,7 +168,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 0), // no extra gap needed
+                const SizedBox(height: 0), // tidak perlu gap tambahan
               ],
             ),
           );

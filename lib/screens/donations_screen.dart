@@ -31,7 +31,7 @@ class _DonationsScreenState extends State<DonationsScreen> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        // ---------- HEADER (tanpa tombol back) ----------
+        // ---------- HEADER (dengan tombol refresh) ----------
         Container(
           color: Color(0xFF4D5BFF),
           padding: EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 16),
@@ -57,7 +57,11 @@ class _DonationsScreenState extends State<DonationsScreen> {
                   ],
                 ),
               ),
-              // Tombol back dihapus karena tidak diperlukan
+              // Tombol refresh:
+              IconButton(
+                icon: Icon(Icons.refresh, color: Colors.white),
+                onPressed: _loadDonations,
+              ),
             ],
           ),
         ),
