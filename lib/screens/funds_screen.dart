@@ -169,7 +169,9 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   Future<void> _exportSelectedToExcel() async {
-    final selRecs = _localRecords.where((r) => _selectedRecordKeys.contains(r.key!)).toList();
+    final selRecs = _localRecords
+        .where((r) => _selectedRecordKeys.contains(r.key!))
+        .toList();
     if (selRecs.isEmpty) return;
 
     if (Platform.isAndroid) {
@@ -177,7 +179,9 @@ class _FundsScreenState extends State<FundsScreen> {
       if (!status.isGranted) {
         final req = await Permission.storage.request();
         if (!req.isGranted) {
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Permission storage ditolak')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Permission storage ditolak')),
+          );
           return;
         }
       }
@@ -191,34 +195,55 @@ class _FundsScreenState extends State<FundsScreen> {
       final sheetObject = excel[sheetName];
 
       // Header columns (A to E)
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0)).value = 'Penerima';
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0)).value = 'Uang Keluar';
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0)).value = 'Sisa Saldo';
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0)).value = 'Uang Masuk';
-      sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0)).value = 'Target';
+      sheetObject
+          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
+          .value = 'Penerima';
+      sheetObject
+          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
+          .value = 'Uang Keluar';
+      sheetObject
+          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
+          .value = 'Sisa Saldo';
+      sheetObject
+          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
+          .value = 'Uang Masuk';
+      sheetObject
+          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
+          .value = 'Target';
 
       double sumKeluar = 0.0;
       for (var rec in selRecs) {
-        sumKeluar += (rec.uangKeluar).toDouble();
+        sumKeluar += rec.uangKeluar.toDouble();
       }
-      final campaignObj = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-      final startingSaldo = (campaignObj.collected - (_sumUangKeluar - sumKeluar)).toDouble();
+      final campaignObj =
+          _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+      final startingSaldo =
+          (campaignObj.collected - (_sumUangKeluar - sumKeluar)).toDouble();
 
       for (int i = 0; i < selRecs.length; i++) {
         final rec = selRecs[i];
         final row = i + 1;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = rec.penerima;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).value = rec.uangKeluar;
-        final cumulativeKeluar = selRecs.sublist(0, i + 1).fold<double>(
-          0.0,
-          (sum, r2) => sum + (r2.uangKeluar).toDouble(),
-        );
+        sheetObject
+            .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
+            .value = rec.penerima;
+        sheetObject
+            .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
+            .value = rec.uangKeluar;
+        final cumulativeKeluar = selRecs
+            .sublist(0, i + 1)
+            .fold<double>(0.0, (sum, r2) => sum + r2.uangKeluar.toDouble());
         final rowSaldo = startingSaldo - cumulativeKeluar;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = rowSaldo;
+        sheetObject
+            .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
+            .value = rowSaldo;
 
         // Add collected and target in columns D and E
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = campaignObj.collected;
-        sheetObject.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row)).value = campaignObj.target;
+        sheetObject
+            .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
+            .value = campaignObj.collected;
+        sheetObject
+            .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
+            .value = campaignObj.target;
       }
 
       final fileBytes = excel.encode();
@@ -230,15 +255,26 @@ class _FundsScreenState extends State<FundsScreen> {
         await edonateDir.create(recursive: true);
       }
 
+      // Create a subfolder named after the selected campaign
+      final campaignFolder =
+          Directory('${edonateDir.path}/$_selectedCampaign');
+      if (!await campaignFolder.exists()) {
+        await campaignFolder.create(recursive: true);
+      }
+
       final timestamp = DateTime.now().millisecondsSinceEpoch;
       final fileName = 'fund_records_$timestamp.xlsx';
-      final filePath = '${edonateDir.path}/$fileName';
+      final filePath = '${campaignFolder.path}/$fileName';
       final outFile = File(filePath);
       await outFile.writeAsBytes(fileBytes, flush: true);
 
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('File tersimpan di: $filePath')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('File tersimpan di: $filePath')),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error saat export: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error saat export: $e')),
+      );
     } finally {
       if (!mounted) return;
       setState(() => _isExporting = false);
@@ -250,7 +286,19 @@ class _FundsScreenState extends State<FundsScreen> {
     return Stack(
       children: [
         Scaffold(
-          appBar: AppBar(title: const Text('Uang Donasi')),
+          appBar: AppBar(
+            title: const Text('Uang Donasi'),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh),
+                onPressed: () {
+                  setState(() {
+                    _initFuture = _initData();
+                  });
+                },
+              ),
+            ],
+          ),
           body: FutureBuilder<void>(
             future: _initFuture,
             builder: (ctx, snapshot) {
@@ -260,7 +308,8 @@ class _FundsScreenState extends State<FundsScreen> {
               if (_campaigns.isEmpty) {
                 return const Center(child: Text('Tidak ada kampanye'));
               }
-              final campaign = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+              final campaign =
+                  _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
               final available = campaign.collected - _sumUangKeluar;
 
               return Padding(
@@ -273,10 +322,18 @@ class _FundsScreenState extends State<FundsScreen> {
                         hintText: 'Pilih Kampanye',
                         filled: true,
                         fillColor: Colors.white,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.all(Radius.circular(8)),
+                        ),
+                        contentPadding:
+                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                       ),
-                      items: _campaigns.map((d) => d.nama).toSet().map((name) => DropdownMenuItem(value: name, child: Text(name))).toList(),
+                      items: _campaigns
+                          .map((d) => d.nama)
+                          .toSet()
+                          .map((name) =>
+                              DropdownMenuItem(value: name, child: Text(name)))
+                          .toList(),
                       value: _selectedCampaign,
                       onChanged: _onCampaignChanged,
                     ),
@@ -287,10 +344,19 @@ class _FundsScreenState extends State<FundsScreen> {
                     const SizedBox(height: 8),
                     _buildCard('Tersedia', _formatCurrency(available)),
                     const SizedBox(height: 16),
-                    ElevatedButton.icon(onPressed: _onNewCatatan, icon: const Icon(Icons.add), label: const Text('New Catatan')),
+                    ElevatedButton.icon(
+                      onPressed: _onNewCatatan,
+                      icon: const Icon(Icons.add),
+                      label: const Text('New Catatan'),
+                    ),
                     const SizedBox(height: 16),
                     if (_localRecords.isNotEmpty)
-                      CheckboxListTile(contentPadding: EdgeInsets.zero, title: const Text('Select All'), value: _isAllSelected, onChanged: _onSelectAllChanged),
+                      CheckboxListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Select All'),
+                        value: _isAllSelected,
+                        onChanged: _onSelectAllChanged,
+                      ),
                     const SizedBox(height: 8),
                     Expanded(
                       child: _localRecords.isEmpty
@@ -299,28 +365,61 @@ class _FundsScreenState extends State<FundsScreen> {
                               itemCount: _localRecords.length,
                               itemBuilder: (_, i) {
                                 final r = _localRecords[i];
-                                final isSelected = _selectedRecordKeys.contains(r.key!);
+                                final isSelected =
+                                    _selectedRecordKeys.contains(r.key!);
                                 return Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
+                                  margin:
+                                      const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? Colors.blue[50] : Colors.grey[100],
+                                    color: isSelected
+                                        ? Colors.blue[50]
+                                        : Colors.grey[100],
                                     borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: isSelected ? Colors.blue : Colors.grey[300]!),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? Colors.blue
+                                          : Colors.grey[300]!,
+                                    ),
                                   ),
                                   child: Row(
                                     children: [
-                                      Checkbox(value: isSelected, onChanged: (v) => _onSingleRecordToggled(r, v)),
+                                      Checkbox(
+                                        value: isSelected,
+                                        onChanged: (v) =>
+                                            _onSingleRecordToggled(r, v),
+                                      ),
                                       const SizedBox(width: 8),
                                       Expanded(
-                                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                          Text(r.penerima, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-                                          const SizedBox(height: 4),
-                                          Text('Rp ${_formatCurrency(r.uangKeluar)}'),
-                                        ]),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              r.penerima,
+                                              style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight:
+                                                      FontWeight.w500),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Rp ${_formatCurrency(r.uangKeluar)}',
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                      IconButton(icon: const Icon(Icons.edit, color: Colors.green), onPressed: () => _editRecord(r)),
-                                      IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _confirmDeleteRecord(r.key!)),
+                                      IconButton(
+                                        icon: const Icon(Icons.edit,
+                                            color: Colors.green),
+                                        onPressed: () => _editRecord(r),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete,
+                                            color: Colors.red),
+                                        onPressed: () =>
+                                            _confirmDeleteRecord(r.key!),
+                                      ),
                                     ],
                                   ),
                                 );
@@ -329,12 +428,17 @@ class _FundsScreenState extends State<FundsScreen> {
                     ),
                     if (_selectedRecordKeys.isNotEmpty)
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 12),
                         child: ElevatedButton.icon(
                           icon: const Icon(Icons.file_download_outlined),
-                          label: Text('Export (${_selectedRecordKeys.length} item${_selectedRecordKeys.length > 1 ? 's' : ''})'),
+                          label: Text(
+                            'Export (${_selectedRecordKeys.length} item${_selectedRecordKeys.length > 1 ? 's' : ''})',
+                          ),
                           onPressed: _exportSelectedToExcel,
-                          style: ElevatedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size.fromHeight(48),
+                          ),
                         ),
                       ),
                   ],
@@ -347,7 +451,11 @@ class _FundsScreenState extends State<FundsScreen> {
           Positioned.fill(
             child: Container(
               color: Colors.black45,
-              child: const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
+              child: const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              ),
             ),
           ),
       ],
@@ -357,16 +465,25 @@ class _FundsScreenState extends State<FundsScreen> {
   Widget _buildCard(String label, String value) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(8), boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: Colors.grey[600])),
-        const SizedBox(height: 4),
-        Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          const SizedBox(height: 4),
+          Text(value,
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        ],
+      ),
     );
   }
 
   String _formatCurrency(num amount) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+        .format(amount);
   }
 }
