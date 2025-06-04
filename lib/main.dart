@@ -68,7 +68,7 @@ class _MainTabViewState extends State<MainTabView> {
                 icon: Icon(Icons.dashboard), label: 'Dashboard'),
             BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Donasi'),
             BottomNavigationBarItem(
-                icon: Icon(Icons.insert_chart), label: 'Laporan'),
+                icon: Icon(Icons.insert_chart), label: 'Grafik'),
             BottomNavigationBarItem(
                 icon: Icon(Icons.account_balance_wallet), label: 'Uang Donasi'),
           ],
