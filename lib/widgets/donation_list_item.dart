@@ -51,7 +51,8 @@ class DonationListItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final formattedDate = DateFormat('dd MMMM yyyy', 'id_ID').format(donatur.tanggal ?? DateTime.now());
+    final formattedDate = DateFormat('dd MMMM yyyy', 'id_ID')
+        .format(donatur.tanggal ?? DateTime.now());
     final formattedAmount = NumberFormat.simpleCurrency(
       locale: 'id_ID',
       name: 'Rp',
@@ -67,8 +68,8 @@ class DonationListItem extends StatelessWidget {
           Text('Tanggal: $formattedDate'),
         ],
       ),
-      leading: Icon(Icons.person, color: Colors.grey),
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      leading: const Icon(Icons.person, color: Colors.grey),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(8),
         side: BorderSide(color: Colors.grey[200]!),

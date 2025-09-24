@@ -18,6 +18,8 @@ void main() async {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext ctx) => MaterialApp(
         title: 'E-Donate CMS',
@@ -27,19 +29,21 @@ class MyApp extends StatelessWidget {
             foregroundColor: Colors.black,
             elevation: 0,
           ),
-          primaryColor: Color(0xFF4D5BFF),
+          primaryColor: const Color(0xFF4D5BFF),
           scaffoldBackgroundColor: Colors.grey[100],
         ),
         // keep the existing home property unchanged
         home: MainTabView(),
         // add routes without modifying existing functions
         routes: {
-          '/uang-donasi/create': (ctx) => CreateFundRecordScreen(),
+          '/uang-donasi/create': (ctx) => const CreateFundRecordScreen(),
         },
       );
 }
 
 class MainTabView extends StatefulWidget {
+  const MainTabView({super.key});
+
   @override
   _MainTabViewState createState() => _MainTabViewState();
 }
@@ -47,10 +51,10 @@ class MainTabView extends StatefulWidget {
 class _MainTabViewState extends State<MainTabView> {
   int _currentIndex = 0;
   final _pages = [
-    DashboardScreen(),
+    const DashboardScreen(),
     DonationsScreen(),
     ReportsScreen(),
-    FundsScreen(),
+    const FundsScreen(),
   ];
 
   @override
@@ -61,9 +65,9 @@ class _MainTabViewState extends State<MainTabView> {
         ),
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
-          selectedItemColor: Color(0xFF4D5BFF),
+          selectedItemColor: const Color(0xFF4D5BFF),
           unselectedItemColor: Colors.grey,
-          items: [
+          items: const [
             BottomNavigationBarItem(
                 icon: Icon(Icons.dashboard), label: 'Dashboard'),
             BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Donasi'),

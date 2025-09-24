@@ -8,6 +8,8 @@ import '../models/donation.dart';
 import '../services/api_service.dart';
 
 class FinanceScreen extends StatefulWidget {
+  const FinanceScreen({super.key});
+
   @override
   _FinanceScreenState createState() => _FinanceScreenState();
 }
@@ -41,8 +43,8 @@ class _FinanceScreenState extends State<FinanceScreen> {
       sheet.getRangeByName('B\$row').setNumber(d.target);
       sheet.getRangeByName('C\$row').setNumber(d.collected.toDouble());
       sheet.getRangeByName('D\$row').setText(
-        d.collected >= d.target ? 'Selesai' : 'Aktif',
-      );
+            d.collected >= d.target ? 'Selesai' : 'Aktif',
+          );
     }
 
     final bytes = workbook.saveAsStream();
@@ -51,7 +53,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
     await file.writeAsBytes(bytes, flush: true);
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Data diekspor ke \${file.path}')),
+      const SnackBar(content: Text('Data diekspor ke \${file.path}')),
     );
   }
 
@@ -59,10 +61,10 @@ class _FinanceScreenState extends State<FinanceScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Catatan Keuangan'),
+        title: const Text('Catatan Keuangan'),
         actions: [
           IconButton(
-            icon: Icon(Icons.download),
+            icon: const Icon(Icons.download),
             onPressed: () async {
               final list = await _futureDonations;
               _exportExcel(list);
@@ -74,7 +76,7 @@ class _FinanceScreenState extends State<FinanceScreen> {
         future: _futureDonations,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
@@ -82,17 +84,17 @@ class _FinanceScreenState extends State<FinanceScreen> {
           return DataTable2(
             columnSpacing: 12,
             horizontalMargin: 12,
-            columns: [
+            columns: const [
               DataColumn2(label: Text('Nama Kampanye'), size: ColumnSize.L),
-              DataColumn(label: Text('Target')), 
+              DataColumn(label: Text('Target')),
               DataColumn(label: Text('Terkumpul')),
               DataColumn(label: Text('Status')),
             ],
             rows: data.map((d) {
               return DataRow(cells: [
                 DataCell(Text(d.nama)),
-                DataCell(Text('Rp \${d.target.toInt()}')),
-                DataCell(Text('Rp \${d.collected.toInt()}')),
+                const DataCell(Text('Rp \${d.target.toInt()}')),
+                const DataCell(Text('Rp \${d.collected.toInt()}')),
                 DataCell(Text(
                   d.collected >= d.target ? 'Selesai' : 'Aktif',
                 )),

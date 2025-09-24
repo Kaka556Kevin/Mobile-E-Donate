@@ -7,6 +7,8 @@ import 'donation_form_screen.dart';
 import 'donation_detail_screen.dart';
 
 class DonationsScreen extends StatefulWidget {
+  const DonationsScreen({super.key});
+
   @override
   _DonationsScreenState createState() => _DonationsScreenState();
 }
@@ -32,11 +34,12 @@ class _DonationsScreenState extends State<DonationsScreen> {
     return Column(
       children: [
         Container(
-          color: Color(0xFF4D5BFF),
-          padding: EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 16),
+          color: const Color(0xFF4D5BFF),
+          padding:
+              const EdgeInsets.only(top: 48, bottom: 24, left: 24, right: 16),
           child: Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -57,13 +60,13 @@ class _DonationsScreenState extends State<DonationsScreen> {
               ),
               GestureDetector(
                 onTap: () => Navigator.pop(context),
-                child: Icon(Icons.arrow_back, color: Colors.white),
+                child: const Icon(Icons.arrow_back, color: Colors.white),
               ),
             ],
           ),
         ),
         Padding(
-          padding: EdgeInsets.all(16),
+          padding: const EdgeInsets.all(16),
           child: Row(
             children: [
               Expanded(
@@ -73,8 +76,9 @@ class _DonationsScreenState extends State<DonationsScreen> {
                     hintText: 'Search campaigns...',
                     fillColor: Colors.white,
                     filled: true,
-                    prefixIcon: Icon(Icons.search),
-                    contentPadding: EdgeInsets.symmetric(vertical: 0, horizontal: 16),
+                    prefixIcon: const Icon(Icons.search),
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 0, horizontal: 16),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(30),
                       borderSide: BorderSide.none,
@@ -83,18 +87,18 @@ class _DonationsScreenState extends State<DonationsScreen> {
                   onChanged: (_) => setState(() {}),
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               FloatingActionButton(
-                backgroundColor: Color(0xFF4D5BFF),
+                backgroundColor: const Color(0xFF4D5BFF),
                 onPressed: () => Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => DonationFormScreen(),
+                    builder: (_) => const DonationFormScreen(),
                   ),
                 ).then((refresh) {
                   if (refresh == true) _loadDonations();
                 }),
-                child: Icon(Icons.add),
+                child: const Icon(Icons.add),
               ),
             ],
           ),
@@ -104,7 +108,7 @@ class _DonationsScreenState extends State<DonationsScreen> {
             future: _futureDonations,
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
-                return Center(child: CircularProgressIndicator());
+                return const Center(child: CircularProgressIndicator());
               } else if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
@@ -114,12 +118,12 @@ class _DonationsScreenState extends State<DonationsScreen> {
                       ))
                   .toList();
               return ListView.builder(
-                padding: EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 itemCount: list.length,
                 itemBuilder: (context, index) {
                   final d = list[index];
                   return Card(
-                    margin: EdgeInsets.only(bottom: 12),
+                    margin: const EdgeInsets.only(bottom: 12),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -127,7 +131,7 @@ class _DonationsScreenState extends State<DonationsScreen> {
                       tileColor: Colors.white,
                       title: Text(
                         d.nama,
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -137,7 +141,8 @@ class _DonationsScreenState extends State<DonationsScreen> {
                         ],
                       ),
                       trailing: Container(
-                        padding: EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 4, horizontal: 8),
                         decoration: BoxDecoration(
                           color: d.collected >= d.target
                               ? Colors.green[100]

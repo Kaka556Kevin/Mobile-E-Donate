@@ -8,7 +8,7 @@ import '../widgets/custom_image_picker.dart';
 
 class DonationFormScreen extends StatefulWidget {
   final Donation? donation;
-  const DonationFormScreen({Key? key, this.donation}) : super(key: key);
+  const DonationFormScreen({super.key, this.donation});
 
   @override
   _DonationFormScreenState createState() => _DonationFormScreenState();
@@ -68,46 +68,51 @@ class _DonationFormScreenState extends State<DonationFormScreen> {
         title: Text(widget.donation == null ? 'Tambah Donasi' : 'Edit Donasi'),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-              padding: EdgeInsets.all(16),
+              padding: const EdgeInsets.all(16),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
                     TextFormField(
                       initialValue: _nama,
-                      decoration: InputDecoration(labelText: 'Nama'),
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      decoration: const InputDecoration(labelText: 'Nama'),
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Required' : null,
                       onSaved: (v) => _nama = v!.trim(),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     TextFormField(
                       initialValue: _deskripsi,
-                      decoration: InputDecoration(labelText: 'Deskripsi'),
+                      decoration: const InputDecoration(labelText: 'Deskripsi'),
                       maxLines: 3,
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Required' : null,
                       onSaved: (v) => _deskripsi = v!.trim(),
                     ),
-                    SizedBox(height: 12),
+                    const SizedBox(height: 12),
                     TextFormField(
                       initialValue: _target.toString(),
-                      decoration: InputDecoration(labelText: 'Target Terkumpul'),
+                      decoration:
+                          const InputDecoration(labelText: 'Target Terkumpul'),
                       keyboardType: TextInputType.number,
-                      validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+                      validator: (v) =>
+                          v == null || v.isEmpty ? 'Required' : null,
                       onSaved: (v) => _target = double.parse(v!),
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     CustomImagePicker(onImageSelected: (file) {
                       _imageFile = file;
                     }),
-                    SizedBox(height: 24),
+                    const SizedBox(height: 24),
                     SizedBox(
                       width: double.infinity,
                       height: 48,
                       child: ElevatedButton(
                         onPressed: _submitForm,
-                        child: Text(widget.donation == null ? 'Simpan' : 'Update'),
+                        child:
+                            Text(widget.donation == null ? 'Simpan' : 'Update'),
                       ),
                     ),
                   ],

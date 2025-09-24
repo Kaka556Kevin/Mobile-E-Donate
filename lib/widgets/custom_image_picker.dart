@@ -112,11 +112,11 @@ class CustomImagePicker extends StatefulWidget {
   final double previewHeight;
 
   const CustomImagePicker({
-    Key? key,
+    super.key,
     required this.onImageSelected,
     this.buttonText = 'Pilih Gambar',
     this.previewHeight = 150,
-  }) : super(key: key);
+  });
 
   @override
   _CustomImagePickerState createState() => _CustomImagePickerState();
@@ -127,7 +127,8 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
   final ImagePicker _picker = ImagePicker();
 
   Future<void> _pickImage(ImageSource source) async {
-    final XFile? pickedFile = await _picker.pickImage(source: source, imageQuality: 85);
+    final XFile? pickedFile =
+        await _picker.pickImage(source: source, imageQuality: 85);
     if (pickedFile != null) {
       final file = File(pickedFile.path);
       setState(() => _selectedImage = file);
@@ -143,16 +144,16 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
-              leading: Icon(Icons.photo_library),
-              title: Text('Gallery'),
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Gallery'),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.gallery);
               },
             ),
             ListTile(
-              leading: Icon(Icons.camera_alt),
-              title: Text('Camera'),
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Camera'),
               onTap: () {
                 Navigator.pop(context);
                 _pickImage(ImageSource.camera);
@@ -170,16 +171,16 @@ class _CustomImagePickerState extends State<CustomImagePicker> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ElevatedButton.icon(
-          icon: Icon(Icons.upload_file),
+          icon: const Icon(Icons.upload_file),
           label: Text(widget.buttonText),
           style: ElevatedButton.styleFrom(
-            backgroundColor: Color(0xFF4D5BFF),
-            padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+            backgroundColor: const Color(0xFF4D5BFF),
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           ),
           onPressed: _showPickerOptions,
         ),
         if (_selectedImage != null) ...[
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: Image.file(

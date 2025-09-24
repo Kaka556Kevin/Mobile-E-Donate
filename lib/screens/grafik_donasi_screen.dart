@@ -6,6 +6,8 @@ import '../models/donation.dart';
 import '../services/api_service.dart';
 
 class GrafikDonasiScreen extends StatefulWidget {
+  const GrafikDonasiScreen({super.key});
+
   @override
   _GrafikDonasiScreenState createState() => _GrafikDonasiScreenState();
 }
@@ -36,12 +38,13 @@ class _GrafikDonasiScreenState extends State<GrafikDonasiScreen> {
   Widget build(BuildContext context) {
     const headerColor = Color(0xFF4D5BFF);
     return Scaffold(
-      appBar: AppBar(title: Text('Grafik Donasi'), backgroundColor: headerColor),
+      appBar: AppBar(
+          title: const Text('Grafik Donasi'), backgroundColor: headerColor),
       body: FutureBuilder<List<Donation>>(
         future: _futureDonations,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error: ${snapshot.error}'));
           }
@@ -56,7 +59,7 @@ class _GrafikDonasiScreenState extends State<GrafikDonasiScreen> {
           final maxY = grouped.values.reduce((a, b) => a > b ? a : b) * 1.2;
 
           return Padding(
-            padding: EdgeInsets.all(16),
+            padding: const EdgeInsets.all(16),
             child: BarChart(
               BarChartData(
                 maxY: maxY,
@@ -67,20 +70,22 @@ class _GrafikDonasiScreenState extends State<GrafikDonasiScreen> {
                       showTitles: true,
                       getTitlesWidget: (value, meta) {
                         final idx = value.toInt();
-                        if (idx < 0 || idx >= entries.length) return SizedBox();
+                        if (idx < 0 || idx >= entries.length)
+                          return const SizedBox();
                         final name = entries[idx].key;
                         return Transform.translate(
-                          offset: Offset(0, 4),
-                          child: Text(name, style: TextStyle(fontSize: 10)),
+                          offset: const Offset(0, 4),
+                          child:
+                              Text(name, style: const TextStyle(fontSize: 10)),
                         );
                       },
                     ),
                   ),
-                  leftTitles: AxisTitles(
+                  leftTitles: const AxisTitles(
                     sideTitles: SideTitles(showTitles: false),
                   ),
                 ),
-                gridData: FlGridData(show: false),
+                gridData: const FlGridData(show: false),
                 borderData: FlBorderData(show: false),
               ),
             ),

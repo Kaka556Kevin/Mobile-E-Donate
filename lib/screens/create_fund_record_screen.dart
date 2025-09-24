@@ -6,7 +6,7 @@ import '../services/local_fund_service.dart';
 import '../services/api_service.dart';
 
 class CreateFundRecordScreen extends StatefulWidget {
-  const CreateFundRecordScreen({Key? key}) : super(key: key);
+  const CreateFundRecordScreen({super.key});
 
   @override
   _CreateFundRecordScreenState createState() => _CreateFundRecordScreenState();
@@ -42,7 +42,8 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
 
   void _onKeluarChanged(String val) {
     if (_selectedCampaign == null) return;
-    final parsed = num.tryParse(val.replaceAll('.', '').replaceAll(',', '')) ?? 0;
+    final parsed =
+        num.tryParse(val.replaceAll('.', '').replaceAll(',', '')) ?? 0;
     setState(() {
       _uangKeluar = parsed;
       // subtract from collected, not target
@@ -74,7 +75,7 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error menyimpan: \$e')));
+          .showSnackBar(const SnackBar(content: Text('Error menyimpan: \$e')));
     } finally {
       setState(() => _loading = false);
     }
@@ -87,9 +88,9 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
 
   String _format(num value) {
     return value.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d)(?=(\d{3})+\b)'),
-      (m) => '\${m[1]}.',
-    );
+          RegExp(r'(\d)(?=(\d{3})+\b)'),
+          (m) => '\${m[1]}.',
+        );
   }
 
   @override
@@ -103,7 +104,8 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snap.hasError || snap.data!.isEmpty) {
-            return const Center(child: Text('Tidak ada program donasi tersedia'));
+            return const Center(
+                child: Text('Tidak ada program donasi tersedia'));
           }
           final donations = snap.data!;
           _selectedCampaign ??= donations.first;
@@ -143,8 +145,8 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
                       ),
                       const SizedBox(height: 12),
                       TextFormField(
-                        decoration:
-                            const InputDecoration(labelText: 'Uang Keluar (Rp)'),
+                        decoration: const InputDecoration(
+                            labelText: 'Uang Keluar (Rp)'),
                         keyboardType: TextInputType.number,
                         onChanged: _onKeluarChanged,
                         validator: (v) =>
@@ -169,9 +171,9 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
                 // List of records
                 Expanded(
                   child: FutureBuilder<List<FundRecord>>(
-                    future: Future.value(_localService.getAll()
-                        .where((r) => r.donationId ==
-                            _selectedCampaign!.id)
+                    future: Future.value(_localService
+                        .getAll()
+                        .where((r) => r.donationId == _selectedCampaign!.id)
                         .toList()),
                     builder: (context, recSnap) {
                       final records = recSnap.data ?? [];
@@ -185,13 +187,11 @@ class _CreateFundRecordScreenState extends State<CreateFundRecordScreen> {
                           return Card(
                             child: ListTile(
                               title: Text(rec.penerima),
-                              subtitle: Text(
-                                  'Rp ${_format(rec.uangKeluar)}'),
+                              subtitle: Text('Rp ${_format(rec.uangKeluar)}'),
                               trailing: IconButton(
-                                icon: const Icon(Icons.delete,
-                                    color: Colors.red),
-                                onPressed: () =>
-                                    _deleteRecord(rec.key as int),
+                                icon:
+                                    const Icon(Icons.delete, color: Colors.red),
+                                onPressed: () => _deleteRecord(rec.key as int),
                               ),
                             ),
                           );

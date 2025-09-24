@@ -7,6 +7,8 @@ import '../models/donation.dart';
 import '../services/api_service.dart';
 
 class ReportsScreen extends StatefulWidget {
+  const ReportsScreen({super.key});
+
   @override
   _ReportsScreenState createState() => _ReportsScreenState();
 }
@@ -45,13 +47,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
           if (campaigns.isEmpty) {
             return const Center(child: Text('Tidak ada data kampanye.'));
           }
-          if (_selectedCampaign == null) {
-            _selectedCampaign = campaigns.first;
-          }
+          _selectedCampaign ??= campaigns.first;
 
           // Ambil data hanya untuk kampanye terpilih
-          final donation =
-              data.firstWhere((d) => d.nama == _selectedCampaign);
+          final donation = data.firstWhere((d) => d.nama == _selectedCampaign);
           final barGroup = BarChartGroupData(
             x: 0,
             barRods: [
@@ -188,7 +187,8 @@ class _InfoCard extends StatelessWidget {
           Text(label, style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 8),
           Text(value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );

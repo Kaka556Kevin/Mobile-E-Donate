@@ -7,7 +7,7 @@ import '../models/form_donasi.dart';
 import '../services/api_service.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({Key? key}) : super(key: key);
+  const DashboardScreen({super.key});
 
   @override
   _DashboardScreenState createState() => _DashboardScreenState();
@@ -115,9 +115,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-                    child: _RecentCampaignTable(recent: recent, currency: currency),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 16),
+                    child: _RecentCampaignTable(
+                        recent: recent, currency: currency),
                   ),
                 ),
                 const SizedBox(height: 24),
@@ -125,12 +126,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 // — Donatur Search Field
                 TextField(
                   controller: _donorSearchCtrl,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Cari Donatur...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: const OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.search),
+                    border: OutlineInputBorder(),
                     contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
                   onChanged: (_) {
                     setState(() {});
@@ -228,10 +229,10 @@ class _RecentCampaignTable extends StatelessWidget {
   final DateFormat _fmt = DateFormat('dd MMM yyyy', 'id_ID');
 
   _RecentCampaignTable({
-    Key? key,
+    super.key,
     required this.recent,
     required this.currency,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -332,10 +333,10 @@ class _DonorListTable extends StatelessWidget {
   final DateFormat _fmt = DateFormat('dd MMM yyyy', 'id_ID');
 
   _DonorListTable({
-    Key? key,
+    super.key,
     required this.donors,
     required this.currency,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -9,6 +9,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
+// Ganti import ini dengan path yang benar ke model dan service Anda
 import '../services/api_service.dart';
 import '../services/local_fund_service.dart';
 import '../models/donation.dart';
@@ -16,7 +17,6 @@ import '../models/donation.dart';
 class FundsScreen extends StatefulWidget {
   const FundsScreen({super.key});
 
-  // avoid exposing private type in public API to satisfy lints:
   @override
   State<FundsScreen> createState() => _FundsScreenState();
 }
@@ -33,18 +33,8 @@ class _FundsScreenState extends State<FundsScreen> {
   @override
   void initState() {
     super.initState();
-    _requestStoragePermission();
     _localService = LocalFundService();
     _initFuture = _initData();
-  }
-
-  Future<void> _requestStoragePermission() async {
-    if (Platform.isAndroid) {
-      final status = await Permission.storage.status;
-      if (!status.isGranted) {
-        await Permission.storage.request();
-      }
-    }
   }
 
   Future<void> _initData() async {
@@ -66,14 +56,24 @@ class _FundsScreenState extends State<FundsScreen> {
 
   Future<void> _loadLocalRecords(String campaignName) async {
     final allRecords = _localService.getAll();
-    final campaign = _campaigns.firstWhere((d) => d.nama == campaignName);
-    final matched =
-        allRecords.where((r) => r.donationId == campaign.id).toList();
-    if (!mounted) return;
-    setState(() {
-      _localRecords = matched;
-      _selectedRecordKeys.clear();
-    });
+    // Gunakan try-catch untuk menghindari error jika campaign tidak ditemukan
+    try {
+      final campaign = _campaigns.firstWhere((d) => d.nama == campaignName);
+      final matched =
+          allRecords.where((r) => r.donationId == campaign.id).toList();
+      if (!mounted) return;
+      setState(() {
+        _localRecords = matched;
+        _selectedRecordKeys.clear();
+      });
+    } catch (e) {
+      // Handle jika campaign tidak ada, misalnya set record jadi kosong
+      if (!mounted) return;
+      setState(() {
+        _localRecords = [];
+        _selectedRecordKeys.clear();
+      });
+    }
   }
 
   void _onCampaignChanged(String? newName) async {
@@ -85,6 +85,7 @@ class _FundsScreenState extends State<FundsScreen> {
   void _onNewCatatan() async {
     if (_selectedCampaign == null) return;
     final camp = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+    // Ganti '/uang-donasi/create' dengan route yang benar di aplikasi Anda
     await Navigator.pushNamed(context, '/uang-donasi/create', arguments: camp);
     if (!mounted) return;
     await _loadLocalRecords(_selectedCampaign!);
@@ -190,7 +191,6 @@ class _FundsScreenState extends State<FundsScreen> {
     }
   }
 
-  // Export UI: show options (Excel / PDF)
   void _showExportOptions() {
     if (_selectedRecordKeys.isEmpty) return;
     showModalBottomSheet<void>(
@@ -228,7 +228,6 @@ class _FundsScreenState extends State<FundsScreen> {
         .toList();
     if (selRecs.isEmpty) return;
 
-    // request permission
     if (Platform.isAndroid) {
       final status = await Permission.storage.status;
       if (!status.isGranted) {
@@ -242,7 +241,6 @@ class _FundsScreenState extends State<FundsScreen> {
       }
     }
 
-    // prepare primitive maps for compute
     final campaignObj =
         _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
     final Map<String, dynamic> campaignMap = {
@@ -276,12 +274,15 @@ class _FundsScreenState extends State<FundsScreen> {
         ext = 'pdf';
       }
 
-      // determine base folder
-      Directory baseDir;
+      Directory? baseDir;
       if (Platform.isAndroid) {
-        baseDir = Directory('/storage/emulated/0/Download');
+        baseDir = await getDownloadsDirectory();
       } else {
         baseDir = await getApplicationDocumentsDirectory();
+      }
+
+      if (baseDir == null) {
+        throw Exception('Gagal menemukan direktori penyimpanan.');
       }
 
       final edonateDir =
@@ -300,7 +301,6 @@ class _FundsScreenState extends State<FundsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('File tersimpan di: $filePath')));
 
-      // try to share
       try {
         await Share.shareXFiles([XFile(filePath)],
             text: 'Berikut file catatan donasi.');
@@ -312,12 +312,12 @@ class _FundsScreenState extends State<FundsScreen> {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text('Error saat export: $e')));
     } finally {
-      if (!mounted) return;
-      setState(() => _isExporting = false);
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
     }
   }
 
-  // isolate: generate excel bytes
   static Future<Uint8List?> _generateExcelBytes(
       Map<String, dynamic> params) async {
     final List<dynamic> recs = params['records'] as List<dynamic>;
@@ -328,7 +328,6 @@ class _FundsScreenState extends State<FundsScreen> {
     final sheetName = excel.getDefaultSheet() ?? 'Sheet1';
     final Sheet sheetObject = excel[sheetName];
 
-    // headers
     sheetObject
         .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
         .value = 'Penerima';
@@ -357,10 +356,10 @@ class _FundsScreenState extends State<FundsScreen> {
       final row = i + 1;
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = rec['penerima'];
+          .value = rec['penerima'].toString();
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = rec['uangKeluar'];
+          .value = (rec['uangKeluar'] as num).toDouble();
       final cumulativeKeluar = recs.sublist(0, i + 1).fold<double>(
           0.0, (s, r2) => s + (r2['uangKeluar'] as num).toDouble());
       final rowSaldo = startingSaldo - cumulativeKeluar;
@@ -369,10 +368,10 @@ class _FundsScreenState extends State<FundsScreen> {
           .value = rowSaldo;
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = camp['collected'];
+          .value = (camp['collected'] as num).toDouble();
       sheetObject
           .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
-          .value = camp['target'];
+          .value = (camp['target'] as num).toDouble();
     }
 
     final fileBytes = excel.encode();
@@ -380,7 +379,6 @@ class _FundsScreenState extends State<FundsScreen> {
     return Uint8List.fromList(fileBytes);
   }
 
-  // isolate: generate pdf bytes
   static Future<Uint8List?> _generatePdfBytes(
       Map<String, dynamic> params) async {
     final List<dynamic> recs = params['records'] as List<dynamic>;
@@ -402,6 +400,8 @@ class _FundsScreenState extends State<FundsScreen> {
       sumKeluar += (rec['uangKeluar'] as num).toDouble();
     }
     final startingSaldo = (camp['collected'] as num).toDouble() - sumKeluar;
+    final formatter =
+        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
     for (var i = 0; i < recs.length; i++) {
       final rec = recs[i] as Map;
@@ -410,10 +410,10 @@ class _FundsScreenState extends State<FundsScreen> {
       final rowSaldo = startingSaldo - cumulativeKeluar;
       data.add([
         rec['penerima'].toString(),
-        rec['uangKeluar'].toString(),
-        rowSaldo.toString(),
-        camp['collected'].toString(),
-        camp['target'].toString(),
+        formatter.format(rec['uangKeluar']),
+        formatter.format(rowSaldo),
+        formatter.format(camp['collected']),
+        formatter.format(camp['target']),
       ]);
     }
 
@@ -426,7 +426,6 @@ class _FundsScreenState extends State<FundsScreen> {
                   style: pw.TextStyle(
                       fontSize: 18, fontWeight: pw.FontWeight.bold)),
               pw.SizedBox(height: 12),
-              // use TableHelper instead of deprecated Table.fromTextArray
               pw.TableHelper.fromTextArray(
                   headers: headers,
                   data: data,
@@ -449,8 +448,9 @@ class _FundsScreenState extends State<FundsScreen> {
             IconButton(
               icon: const Icon(Icons.refresh),
               onPressed: () {
-                if (_selectedCampaign != null)
+                if (_selectedCampaign != null) {
                   _loadLocalRecords(_selectedCampaign!);
+                }
               },
             )
           ],
@@ -461,7 +461,7 @@ class _FundsScreenState extends State<FundsScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (_campaigns.isEmpty) {
+            if (_campaigns.isEmpty || _selectedCampaign == null) {
               return const Center(child: Text('Tidak ada kampanye'));
             }
             final campaign =
@@ -551,8 +551,7 @@ class _FundsScreenState extends State<FundsScreen> {
                                                     fontWeight:
                                                         FontWeight.w500)),
                                             const SizedBox(height: 4),
-                                            Text(
-                                                'Rp ${_formatCurrency(r.uangKeluar)}'),
+                                            Text(_formatCurrency(r.uangKeluar)),
                                           ]),
                                     ),
                                     IconButton(
