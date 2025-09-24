@@ -70,7 +70,7 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   double get _sumUangKeluar =>
-      _localRecords.fold(0.0, (sum, r) => sum + (r.uangKeluar as num));
+      _localRecords.fold(0.0, (sum, r) => sum + (r.uangKeluar));
 
   Future<void> _editRecord(FundRecord record) async {
     final penerimaCtrl = TextEditingController(text: record.penerima);
@@ -101,7 +101,8 @@ class _FundsScreenState extends State<FundsScreen> {
           ElevatedButton(
             onPressed: () async {
               record.penerima = penerimaCtrl.text;
-              record.uangKeluar = num.tryParse(uangCtrl.text) ?? record.uangKeluar;
+              record.uangKeluar =
+                  num.tryParse(uangCtrl.text) ?? record.uangKeluar;
               await _localService.updateRecord(record.key as int, record);
               await _loadLocalRecords(_selectedCampaign!);
               Navigator.pop(context);
@@ -126,7 +127,8 @@ class _FundsScreenState extends State<FundsScreen> {
           if (_campaigns.isEmpty) {
             return const Center(child: Text('Tidak ada kampanye'));
           }
-          final campaign = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+          final campaign =
+              _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
           final available = campaign.collected - _sumUangKeluar;
           return Padding(
             padding: const EdgeInsets.all(16),
@@ -138,12 +140,19 @@ class _FundsScreenState extends State<FundsScreen> {
                     hintText: 'Pilih Kampanye',
                     filled: true,
                     fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(8))),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.all(Radius.circular(8))),
+                    contentPadding:
+                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   ),
-                  items: _campaigns.map((d) => d.nama).toSet().map(
-                        (name) => DropdownMenuItem(value: name, child: Text(name)),
-                      ).toList(),
+                  items: _campaigns
+                      .map((d) => d.nama)
+                      .toSet()
+                      .map(
+                        (name) =>
+                            DropdownMenuItem(value: name, child: Text(name)),
+                      )
+                      .toList(),
                   value: _selectedCampaign,
                   onChanged: _onCampaignChanged,
                 ),
@@ -167,15 +176,20 @@ class _FundsScreenState extends State<FundsScreen> {
                           itemCount: _localRecords.length,
                           itemBuilder: (_, i) {
                             final r = _localRecords[i];
-                            final isSelected = _selectedRecordKeys.contains(r.key as int);
+                            final isSelected =
+                                _selectedRecordKeys.contains(r.key as int);
                             return Container(
                               margin: const EdgeInsets.only(bottom: 12),
                               padding: const EdgeInsets.all(12),
                               decoration: BoxDecoration(
-                                color: isSelected ? Colors.blue[50] : Colors.grey[100],
+                                color: isSelected
+                                    ? Colors.blue[50]
+                                    : Colors.grey[100],
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: isSelected ? Colors.blue : Colors.grey[300]!,
+                                  color: isSelected
+                                      ? Colors.blue
+                                      : Colors.grey[300]!,
                                 ),
                               ),
                               child: Row(
@@ -187,7 +201,8 @@ class _FundsScreenState extends State<FundsScreen> {
                                         if (v == true) {
                                           _selectedRecordKeys.add(r.key as int);
                                         } else {
-                                          _selectedRecordKeys.remove(r.key as int);
+                                          _selectedRecordKeys
+                                              .remove(r.key as int);
                                         }
                                       });
                                     },
@@ -195,26 +210,34 @@ class _FundsScreenState extends State<FundsScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Text(
                                           r.penerima,
-                                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                          style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w500),
                                         ),
                                         const SizedBox(height: 4),
-                                        Text('Rp ${_formatCurrency(r.uangKeluar)}'),
+                                        Text(
+                                            'Rp ${_formatCurrency(r.uangKeluar)}'),
                                       ],
                                     ),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.edit, color: Colors.green),
+                                    icon: const Icon(Icons.edit,
+                                        color: Colors.green),
                                     onPressed: () => _editRecord(r),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
+                                    icon: const Icon(Icons.delete,
+                                        color: Colors.red),
                                     onPressed: () async {
-                                      await _localService.deleteRecord(r.key as int);
-                                      await _loadLocalRecords(_selectedCampaign!);
+                                      await _localService
+                                          .deleteRecord(r.key as int);
+                                      await _loadLocalRecords(
+                                          _selectedCampaign!);
                                     },
                                   ),
                                 ],
@@ -244,13 +267,17 @@ class _FundsScreenState extends State<FundsScreen> {
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600])),
           const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(value,
+              style:
+                  const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
   String _formatCurrency(num amount) {
-    return NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(amount);
+    return NumberFormat.currency(
+            locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+        .format(amount);
   }
 }
