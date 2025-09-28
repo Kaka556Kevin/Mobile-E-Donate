@@ -1,5 +1,6 @@
 // lib/screens/funds_screen.dart
 import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart'; // <-- MODIFIKASI: Import baru
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -56,7 +57,6 @@ class _FundsScreenState extends State<FundsScreen> {
 
   Future<void> _loadLocalRecords(String campaignName) async {
     final allRecords = _localService.getAll();
-    // Gunakan try-catch untuk menghindari error jika campaign tidak ditemukan
     try {
       final campaign = _campaigns.firstWhere((d) => d.nama == campaignName);
       final matched =
@@ -67,7 +67,6 @@ class _FundsScreenState extends State<FundsScreen> {
         _selectedRecordKeys.clear();
       });
     } catch (e) {
-      // Handle jika campaign tidak ada, misalnya set record jadi kosong
       if (!mounted) return;
       setState(() {
         _localRecords = [];
@@ -85,7 +84,6 @@ class _FundsScreenState extends State<FundsScreen> {
   void _onNewCatatan() async {
     if (_selectedCampaign == null) return;
     final camp = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-    // Ganti '/uang-donasi/create' dengan route yang benar di aplikasi Anda
     await Navigator.pushNamed(context, '/uang-donasi/create', arguments: camp);
     if (!mounted) return;
     await _loadLocalRecords(_selectedCampaign!);
@@ -222,42 +220,60 @@ class _FundsScreenState extends State<FundsScreen> {
     );
   }
 
+  // =======================================================================
+  // =================== MODIFIKASI DIMULAI DI SINI ========================
+  // =======================================================================
   Future<void> _exportSelected({required ExportFormat format}) async {
     final selRecs = _localRecords
         .where((r) => _selectedRecordKeys.contains(r.key))
         .toList();
-    if (selRecs.isEmpty) return;
-
-    if (Platform.isAndroid) {
-      final status = await Permission.storage.status;
-      if (!status.isGranted) {
-        final req = await Permission.storage.request();
-        if (!req.isGranted) {
-          if (!mounted) return;
-          ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Permission storage ditolak')));
-          return;
-        }
-      }
+    if (selRecs.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Pilih setidaknya satu catatan untuk diekspor.')));
+      return;
     }
 
-    final campaignObj =
-        _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-    final Map<String, dynamic> campaignMap = {
-      'id': campaignObj.id,
-      'nama': campaignObj.nama,
-      'target': campaignObj.target,
-      'collected': campaignObj.collected,
-    };
-    final List<Map<String, dynamic>> recordsMap = selRecs
-        .map((rec) => {
-              'penerima': rec.penerima,
-              'uangKeluar': rec.uangKeluar,
-            })
-        .toList();
-
     setState(() => _isExporting = true);
+
     try {
+      bool permissionGranted = false;
+
+      // Logika permintaan izin yang baru
+      if (Platform.isAndroid) {
+        final deviceInfo = await DeviceInfoPlugin().androidInfo;
+        // Untuk Android 13 (SDK 33) ke atas, TIDAK PERLU IZIN untuk menyimpan ke folder Downloads
+        if (deviceInfo.version.sdkInt >= 33) {
+          permissionGranted = true;
+        } else {
+          // Untuk Android 12 ke bawah, kita tetap meminta izin storage
+          final status = await Permission.storage.request();
+          permissionGranted = status.isGranted;
+        }
+      } else {
+        // Untuk iOS dan platform lain, anggap izin ada
+        permissionGranted = true;
+      }
+
+      if (!permissionGranted) {
+        throw Exception('Izin penyimpanan ditolak. Tidak dapat melanjutkan.');
+      }
+
+      // Kode untuk membuat file (tidak ada yang berubah dari sini ke bawah)
+      final campaignObj =
+          _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+      final Map<String, dynamic> campaignMap = {
+        'id': campaignObj.id,
+        'nama': campaignObj.nama,
+        'target': campaignObj.target,
+        'collected': campaignObj.collected,
+      };
+      final List<Map<String, dynamic>> recordsMap = selRecs
+          .map((rec) => {
+                'penerima': rec.penerima,
+                'uangKeluar': rec.uangKeluar,
+              })
+          .toList();
+
       late final Uint8List bytes;
       final String ext;
       if (format == ExportFormat.excel) {
@@ -274,11 +290,9 @@ class _FundsScreenState extends State<FundsScreen> {
         ext = 'pdf';
       }
 
-      Directory? baseDir;
+      Directory? baseDir = await getApplicationDocumentsDirectory(); // Default
       if (Platform.isAndroid) {
         baseDir = await getDownloadsDirectory();
-      } else {
-        baseDir = await getApplicationDocumentsDirectory();
       }
 
       if (baseDir == null) {
@@ -301,12 +315,8 @@ class _FundsScreenState extends State<FundsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('File tersimpan di: $filePath')));
 
-      try {
-        await Share.shareXFiles([XFile(filePath)],
-            text: 'Berikut file catatan donasi.');
-      } catch (_) {
-        // ignore share errors
-      }
+      await Share.shareXFiles([XFile(filePath)],
+          text: 'Berikut file catatan donasi.');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context)
@@ -317,6 +327,9 @@ class _FundsScreenState extends State<FundsScreen> {
       }
     }
   }
+  // =======================================================================
+  // =================== MODIFIKASI BERAKHIR DI SINI =======================
+  // =======================================================================
 
   static Future<Uint8List?> _generateExcelBytes(
       Map<String, dynamic> params) async {
