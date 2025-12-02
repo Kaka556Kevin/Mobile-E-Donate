@@ -56,6 +56,26 @@ class LocalFundService {
     await _box.add(record);
   }
 
+  /// **[DITAMBAHKAN]**
+  /// Metode untuk membuat catatan baru dengan timestamp otomatis.
+  Future<void> createNewRecord({
+    required int donationId,
+    required String programName,
+    required String penerima,
+    required num uangKeluar,
+    required num sisaSaldo,
+  }) async {
+    final newRecord = FundRecord(
+      donationId: donationId,
+      programName: programName,
+      penerima: penerima,
+      uangKeluar: uangKeluar,
+      sisaSaldo: sisaSaldo,
+      timestamp: DateTime.now(), // Timestamp dibuat secara otomatis
+    );
+    await addRecord(newRecord);
+  }
+
   Future<void> updateRecord(int key, FundRecord record) async {
     await _box.put(key, record);
   }

@@ -33,11 +33,13 @@ dependencies:
   http: ^1.3.0
   image_picker: ^0.8.7+3
   path: ^1.8.3
-  path_provider: ^2.1.1
+  path_provider: ^2.1.2  # Untuk akses direktori penyimpanan
+  open_file: ^3.3.2      # Untuk membuka file PDF/Excel hasil export
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
   intl: ^0.20.2 # Internationalization, date & number formatting :contentReference[oaicite:0]{index=0}
   fl_chart: ^0.71.0 # Flutter chart library tanpa dependensi intl :contentReference[oaicite:0]{index=0}
   data_table_2: ^2.6.0 # Enhanced DataTable with sticky headers :contentReference[oaicite:2]{index=2}
@@ -69,7 +71,7 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^4.0.0
   json_serializable: ^6.8.0 # Generates fromJson/toJson code :contentReference[oaicite:6]{index=6}
-  build_runner: ^2.4.15 # Runs code generators (e.g. json_serializable) :contentReference[oaicite:7]{index=7}
+  build_runner: ^2.4.13 # Runs code generators (e.g. json_serializable) :contentReference[oaicite:7]{index=7}
   hive_generator: ^2.0.0 # generates TypeAdapter
   
 

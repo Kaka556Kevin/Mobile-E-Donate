@@ -1,19 +1,22 @@
 // lib/screens/funds_screen.dart
+
 import 'dart:io';
-import 'package:device_info_plus/device_info_plus.dart'; // <-- MODIFIKASI: Import baru
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:intl/intl.dart';
 import 'package:excel/excel.dart' hide Border;
+import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-// Ganti import ini dengan path yang benar ke model dan service Anda
 import '../services/api_service.dart';
 import '../services/local_fund_service.dart';
 import '../models/donation.dart';
+import 'create_fund_record_screen.dart';
 
 class FundsScreen extends StatefulWidget {
   const FundsScreen({super.key});
@@ -55,6 +58,45 @@ class _FundsScreenState extends State<FundsScreen> {
     }
   }
 
+  // [BARU] Fungsi Refresh Data (API + Lokal)
+  Future<void> _refreshData() async {
+    try {
+      // 1. Ambil data terbaru dari API
+      final campaigns = await ApiService().fetchAllDonations();
+      if (!mounted) return;
+
+      setState(() {
+        // 2. Update list kampanye
+        _campaigns.clear();
+        _campaigns.addAll(campaigns);
+
+        // 3. Logika mempertahankan pilihan saat ini
+        if (_selectedCampaign != null) {
+          // Cek apakah campaign yang dipilih masih ada di list baru
+          bool exists = _campaigns.any((d) => d.nama == _selectedCampaign);
+          if (!exists && _campaigns.isNotEmpty) {
+            _selectedCampaign = _campaigns.first.nama;
+          }
+        } else if (_campaigns.isNotEmpty) {
+          _selectedCampaign = _campaigns.first.nama;
+        }
+      });
+
+      // 4. Reload catatan lokal
+      if (_selectedCampaign != null) {
+        await _loadLocalRecords(_selectedCampaign!);
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Data berhasil diperbarui'), duration: Duration(seconds: 1)),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal memperbarui data: $e')),
+      );
+    }
+  }
+
   Future<void> _loadLocalRecords(String campaignName) async {
     final allRecords = _localService.getAll();
     try {
@@ -82,9 +124,16 @@ class _FundsScreenState extends State<FundsScreen> {
   }
 
   void _onNewCatatan() async {
-    if (_selectedCampaign == null) return;
+    if (_selectedCampaign == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Pilih kampanye terlebih dahulu')));
+      return;
+    }
     final camp = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-    await Navigator.pushNamed(context, '/uang-donasi/create', arguments: camp);
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CreateFundRecordScreen(campaign: camp)),
+    );
     if (!mounted) return;
     await _loadLocalRecords(_selectedCampaign!);
   }
@@ -98,7 +147,7 @@ class _FundsScreenState extends State<FundsScreen> {
     await showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Edit Catatan'),
+        title: Text('Edit Catatan', style: GoogleFonts.poppins(fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -107,7 +156,7 @@ class _FundsScreenState extends State<FundsScreen> {
                 decoration: const InputDecoration(labelText: 'Penerima')),
             TextField(
               controller: uangCtrl,
-              decoration: const InputDecoration(labelText: 'Uang Keluar'),
+              decoration: const InputDecoration(labelText: 'Nominal'),
               keyboardType: TextInputType.number,
             ),
           ],
@@ -167,17 +216,14 @@ class _FundsScreenState extends State<FundsScreen> {
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Konfirmasi Hapus Catatan'),
-        content: const Text('Apakah Anda yakin ingin menghapus catatan ini?'),
+        title: const Text('Hapus Catatan?'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Batal')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Hapus'),
-          ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Hapus'))
         ],
       ),
     );
@@ -189,446 +235,429 @@ class _FundsScreenState extends State<FundsScreen> {
     }
   }
 
-  void _showExportOptions() {
+  void _showFormatOptions({required bool forShare}) {
     if (_selectedRecordKeys.isEmpty) return;
-    showModalBottomSheet<void>(
-      context: context,
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.table_chart),
-              title: const Text('Export to Excel (.xlsx)'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _exportSelected(format: ExportFormat.excel);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf),
-              title: const Text('Export to PDF (.pdf)'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _exportSelected(format: ExportFormat.pdf);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+    
+    if (forShare) {
+      // Tampilan SHARE DIRECT (WhatsApp/Email)
+      showModalBottomSheet<void>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
-      ),
-    );
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Bagikan Laporan', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.chat_bubble, color: Colors.green),
+                  title: Text('WhatsApp', style: GoogleFonts.poppins()),
+                  subtitle: Text('Kirim otomatis sebagai PDF', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _processFile(format: ExportFormat.pdf, forShare: true);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.email, color: Colors.redAccent),
+                  title: Text('Email', style: GoogleFonts.poppins()),
+                  subtitle: Text('Kirim otomatis sebagai PDF', style: GoogleFonts.poppins(fontSize: 10, color: Colors.grey)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _processFile(format: ExportFormat.pdf, forShare: true);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    } else {
+      // Tampilan EXPORT (Save to Device)
+      showModalBottomSheet<void>(
+        context: context,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        builder: (ctx) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('Simpan File', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.table_chart, color: Colors.green),
+                  title: Text('Excel (.xlsx)', style: GoogleFonts.poppins()),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _processFile(format: ExportFormat.excel, forShare: false);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                  title: Text('PDF Document (.pdf)', style: GoogleFonts.poppins()),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    _processFile(format: ExportFormat.pdf, forShare: false);
+                  },
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 
-  // =======================================================================
-  // =================== MODIFIKASI DIMULAI DI SINI ========================
-  // =======================================================================
-  Future<void> _exportSelected({required ExportFormat format}) async {
+  Future<void> _processFile({required ExportFormat format, required bool forShare}) async {
     final selRecs = _localRecords
         .where((r) => _selectedRecordKeys.contains(r.key))
         .toList();
-    if (selRecs.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Pilih setidaknya satu catatan untuk diekspor.')));
-      return;
-    }
+    if (selRecs.isEmpty) return;
 
     setState(() => _isExporting = true);
 
     try {
-      bool permissionGranted = false;
-
-      // Logika permintaan izin yang baru
-      if (Platform.isAndroid) {
+      if (!forShare && Platform.isAndroid) {
         final deviceInfo = await DeviceInfoPlugin().androidInfo;
-        // Untuk Android 13 (SDK 33) ke atas, TIDAK PERLU IZIN untuk menyimpan ke folder Downloads
-        if (deviceInfo.version.sdkInt >= 33) {
-          permissionGranted = true;
-        } else {
-          // Untuk Android 12 ke bawah, kita tetap meminta izin storage
+        if (deviceInfo.version.sdkInt < 33) {
           final status = await Permission.storage.request();
-          permissionGranted = status.isGranted;
+          if (!status.isGranted) throw Exception('Izin penyimpanan ditolak.');
         }
-      } else {
-        // Untuk iOS dan platform lain, anggap izin ada
-        permissionGranted = true;
       }
 
-      if (!permissionGranted) {
-        throw Exception('Izin penyimpanan ditolak. Tidak dapat melanjutkan.');
-      }
-
-      // Kode untuk membuat file (tidak ada yang berubah dari sini ke bawah)
-      final campaignObj =
-          _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-      final Map<String, dynamic> campaignMap = {
+      final campaignObj = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+      final campaignMap = {
         'id': campaignObj.id,
         'nama': campaignObj.nama,
         'target': campaignObj.target,
         'collected': campaignObj.collected,
       };
-      final List<Map<String, dynamic>> recordsMap = selRecs
-          .map((rec) => {
-                'penerima': rec.penerima,
-                'uangKeluar': rec.uangKeluar,
-              })
-          .toList();
+      final recordsMap = selRecs.map((r) => {
+        'penerima': r.penerima,
+        'uangKeluar': r.uangKeluar,
+      }).toList();
 
       late final Uint8List bytes;
       final String ext;
+      
       if (format == ExportFormat.excel) {
-        final res = await compute(_generateExcelBytes,
-            {'records': recordsMap, 'campaign': campaignMap});
-        if (res == null) throw Exception('Gagal membuat file Excel');
+        final res = await compute(_generateExcelBytes, {'records': recordsMap, 'campaign': campaignMap});
+        if (res == null) throw Exception('Gagal membuat Excel');
         bytes = res;
         ext = 'xlsx';
       } else {
-        final res = await compute(_generatePdfBytes,
-            {'records': recordsMap, 'campaign': campaignMap});
-        if (res == null) throw Exception('Gagal membuat file PDF');
+        final res = await compute(_generatePdfBytes, {'records': recordsMap, 'campaign': campaignMap});
+        if (res == null) throw Exception('Gagal membuat PDF');
         bytes = res;
         ext = 'pdf';
       }
 
-      Directory? baseDir = await getApplicationDocumentsDirectory(); // Default
-      if (Platform.isAndroid) {
-        baseDir = await getDownloadsDirectory();
-      }
-
-      if (baseDir == null) {
-        throw Exception('Gagal menemukan direktori penyimpanan.');
-      }
-
-      final edonateDir =
-          Directory('${baseDir.path}/edonate/${_selectedCampaign!}');
-      if (!await edonateDir.exists()) {
-        await edonateDir.create(recursive: true);
-      }
-
+      final safeName = _selectedCampaign!.replaceAll(RegExp(r'[^\w\s]+'), '');
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'fund_records_$timestamp.$ext';
-      final filePath = '${edonateDir.path}/$fileName';
-      final outFile = File(filePath);
-      await outFile.writeAsBytes(bytes, flush: true);
+      final fileName = 'Laporan_${safeName}_$timestamp.$ext';
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('File tersimpan di: $filePath')));
+      if (forShare) {
+        final tempDir = await getTemporaryDirectory();
+        final file = File('${tempDir.path}/$fileName');
+        await file.writeAsBytes(bytes);
+        
+        if (!mounted) return;
+        await Share.shareXFiles(
+          [XFile(file.path)], 
+          text: 'Laporan Keuangan: $_selectedCampaign'
+        );
+        
+      } else {
+        Directory? baseDir = await getApplicationDocumentsDirectory();
+        if (Platform.isAndroid) {
+          baseDir = await getDownloadsDirectory();
+        }
+        if (baseDir == null) throw Exception('Direktori tidak ditemukan');
 
-      await Share.shareXFiles([XFile(filePath)],
-          text: 'Berikut file catatan donasi.');
+        final targetDir = Directory('${baseDir.path}/edonate/$safeName');
+        if (!await targetDir.exists()) await targetDir.create(recursive: true);
+
+        final file = File('${targetDir.path}/$fileName');
+        await file.writeAsBytes(bytes, flush: true);
+
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Tersimpan di: ${file.path}', style: GoogleFonts.poppins()),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Error saat export: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Gagal: $e', style: GoogleFonts.poppins())),
+      );
     } finally {
-      if (mounted) {
-        setState(() => _isExporting = false);
-      }
+      if (mounted) setState(() => _isExporting = false);
     }
   }
-  // =======================================================================
-  // =================== MODIFIKASI BERAKHIR DI SINI =======================
-  // =======================================================================
 
-  static Future<Uint8List?> _generateExcelBytes(
-      Map<String, dynamic> params) async {
-    final List<dynamic> recs = params['records'] as List<dynamic>;
-    final Map<String, dynamic> camp =
-        params['campaign'] as Map<String, dynamic>;
-
+  static Future<Uint8List?> _generateExcelBytes(Map<String, dynamic> params) async {
     final excel = Excel.createExcel();
-    final sheetName = excel.getDefaultSheet() ?? 'Sheet1';
-    final Sheet sheetObject = excel[sheetName];
-
-    sheetObject
-        .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: 0))
-        .value = 'Penerima';
-    sheetObject
-        .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: 0))
-        .value = 'Uang Keluar';
-    sheetObject
-        .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: 0))
-        .value = 'Sisa Saldo';
-    sheetObject
-        .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: 0))
-        .value = 'Uang Masuk';
-    sheetObject
-        .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: 0))
-        .value = 'Target';
-
-    double sumKeluar = 0.0;
-    for (var rec in recs) {
-      sumKeluar += (rec['uangKeluar'] as num).toDouble();
+    final sheet = excel['Sheet1'];
+    
+    final headers = ['Penerima', 'Uang Keluar', 'Sisa Saldo', 'Total Masuk', 'Target'];
+    for(int i=0; i<headers.length; i++) {
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: i, rowIndex: 0)).value = headers[i];
     }
 
-    final startingSaldo = (camp['collected'] as num).toDouble() - sumKeluar;
+    final List recs = params['records'];
+    final Map camp = params['campaign'];
+    
+    double totalKeluar = 0;
+    for(var r in recs) totalKeluar += (r['uangKeluar'] as num).toDouble();
+    final startSaldo = (camp['collected'] as num).toDouble() - totalKeluar;
 
     for (var i = 0; i < recs.length; i++) {
-      final rec = recs[i] as Map;
+      final r = recs[i];
       final row = i + 1;
-      sheetObject
-          .cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row))
-          .value = rec['penerima'].toString();
-      sheetObject
-          .cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row))
-          .value = (rec['uangKeluar'] as num).toDouble();
-      final cumulativeKeluar = recs.sublist(0, i + 1).fold<double>(
-          0.0, (s, r2) => s + (r2['uangKeluar'] as num).toDouble());
-      final rowSaldo = startingSaldo - cumulativeKeluar;
-      sheetObject
-          .cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row))
-          .value = rowSaldo;
-      sheetObject
-          .cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row))
-          .value = (camp['collected'] as num).toDouble();
-      sheetObject
-          .cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row))
-          .value = (camp['target'] as num).toDouble();
-    }
+      
+      final currentKeluar = recs.sublist(0, i + 1).fold<double>(0, (p, e) => p + (e['uangKeluar'] as num).toDouble());
+      final currentSisa = startSaldo - currentKeluar; 
 
-    final fileBytes = excel.encode();
-    if (fileBytes == null) return null;
-    return Uint8List.fromList(fileBytes);
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 0, rowIndex: row)).value = r['penerima'];
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 1, rowIndex: row)).value = r['uangKeluar'];
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 2, rowIndex: row)).value = currentSisa;
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 3, rowIndex: row)).value = camp['collected'];
+      sheet.cell(CellIndex.indexByColumnRow(columnIndex: 4, rowIndex: row)).value = camp['target'];
+    }
+    return Uint8List.fromList(excel.encode()!);
   }
 
-  static Future<Uint8List?> _generatePdfBytes(
-      Map<String, dynamic> params) async {
-    final List<dynamic> recs = params['records'] as List<dynamic>;
-    final Map<String, dynamic> camp =
-        params['campaign'] as Map<String, dynamic>;
-
+  static Future<Uint8List?> _generatePdfBytes(Map<String, dynamic> params) async {
     final pdf = pw.Document();
-    final headers = [
-      'Penerima',
-      'Uang Keluar',
-      'Sisa Saldo',
-      'Uang Masuk',
-      'Target'
-    ];
-    final List<List<String>> data = [];
+    final List recs = params['records'];
+    final Map camp = params['campaign'];
+    final format = NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
 
-    double sumKeluar = 0.0;
-    for (var rec in recs) {
-      sumKeluar += (rec['uangKeluar'] as num).toDouble();
-    }
-    final startingSaldo = (camp['collected'] as num).toDouble() - sumKeluar;
-    final formatter =
-        NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0);
-
-    for (var i = 0; i < recs.length; i++) {
-      final rec = recs[i] as Map;
-      final cumulativeKeluar = recs.sublist(0, i + 1).fold<double>(
-          0.0, (s, r2) => s + (r2['uangKeluar'] as num).toDouble());
-      final rowSaldo = startingSaldo - cumulativeKeluar;
+    final data = <List<String>>[];
+    for(var r in recs) {
       data.add([
-        rec['penerima'].toString(),
-        formatter.format(rec['uangKeluar']),
-        formatter.format(rowSaldo),
-        formatter.format(camp['collected']),
-        formatter.format(camp['target']),
+        r['penerima'].toString(),
+        format.format(r['uangKeluar']),
       ]);
     }
 
-    pdf.addPage(pw.Page(
-      build: (pw.Context context) {
-        return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text('Laporan Uang Donasi - ${camp['nama']}',
-                  style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
-              pw.SizedBox(height: 12),
-              pw.TableHelper.fromTextArray(
-                  headers: headers,
-                  data: data,
-                  cellAlignment: pw.Alignment.centerLeft),
-            ]);
-      },
-    ));
-
-    final bytes = await pdf.save();
-    return bytes;
+    pdf.addPage(pw.Page(build: (ctx) {
+      return pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('Laporan Keuangan: ${camp['nama']}', style: pw.TextStyle(fontSize: 18, fontWeight: pw.FontWeight.bold)),
+          pw.SizedBox(height: 20),
+          pw.TableHelper.fromTextArray(
+            headers: ['Penerima', 'Nominal'],
+            data: data,
+            headerStyle: pw.TextStyle(fontWeight: pw.FontWeight.bold, color: PdfColors.white),
+            headerDecoration: const pw.BoxDecoration(color: PdfColors.blue),
+            cellAlignment: pw.Alignment.centerLeft,
+          ),
+        ]
+      );
+    }));
+    return await pdf.save();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: [
-      Scaffold(
-        appBar: AppBar(
-          title: const Text('Uang Donasi'),
-          actions: [
-            IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: () {
-                if (_selectedCampaign != null) {
-                  _loadLocalRecords(_selectedCampaign!);
-                }
-              },
-            )
-          ],
-        ),
-        body: FutureBuilder<void>(
-          future: _initFuture,
-          builder: (ctx, snapshot) {
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
-            }
-            if (_campaigns.isEmpty || _selectedCampaign == null) {
-              return const Center(child: Text('Tidak ada kampanye'));
-            }
-            final campaign =
-                _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
-            final available = campaign.collected - _sumUangKeluar;
+    const primaryColor = Color(0xFF4D5BFF);
+    final currencyFmt = NumberFormat.simpleCurrency(locale: 'id_ID', name: 'Rp', decimalDigits: 0);
 
-            return Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        hintText: 'Pilih Kampanye',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                            borderRadius: BorderRadius.all(Radius.circular(8))),
-                        contentPadding:
-                            EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      ),
-                      items: _campaigns
-                          .map((d) => d.nama)
-                          .toSet()
-                          .map((name) =>
-                              DropdownMenuItem(value: name, child: Text(name)))
-                          .toList(),
-                      value: _selectedCampaign,
-                      onChanged: _onCampaignChanged,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FE),
+      appBar: AppBar(
+        title: Text('Manajemen Dana', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.white)),
+        backgroundColor: primaryColor,
+        elevation: 0,
+        centerTitle: true,
+        iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          // [MODIFIKASI] Tombol Refresh memanggil _refreshData
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded),
+            onPressed: _refreshData,
+          )
+        ],
+      ),
+      body: Stack(
+        children: [
+          FutureBuilder<void>(
+            future: _initFuture,
+            builder: (ctx, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: primaryColor));
+              }
+              if (_campaigns.isEmpty || _selectedCampaign == null) {
+                return Center(child: Text('Tidak ada data kampanye', style: GoogleFonts.poppins(color: Colors.grey)));
+              }
+              
+              final campaign = _campaigns.firstWhere((d) => d.nama == _selectedCampaign!);
+              final available = campaign.collected - _sumUangKeluar;
+
+              return Column(
+                children: [
+                  // Header Card
+                  Container(
+                    padding: const EdgeInsets.fromLTRB(20, 10, 20, 24),
+                    decoration: BoxDecoration(color: primaryColor, borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24))),
+                    child: Column(
+                      children: [
+                        // View-only Dropdown
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          decoration: BoxDecoration(color: Colors.white.withOpacity(0.15), borderRadius: BorderRadius.circular(12)),
+                          child: DropdownButtonHideUnderline(
+                            child: DropdownButton<String>(
+                              isExpanded: true,
+                              dropdownColor: primaryColor,
+                              icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white70),
+                              value: _selectedCampaign,
+                              style: GoogleFonts.poppins(color: Colors.white, fontWeight: FontWeight.w500),
+                              items: _campaigns.map((d) => DropdownMenuItem(value: d.nama, child: Text(d.nama))).toList(),
+                              onChanged: _onCampaignChanged,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        // Balance
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(colors: [Color(0xFF6E7BFB), Color(0xFF9DA6FF)]),
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 5))],
+                          ),
+                          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('Dana Tersedia', style: GoogleFonts.poppins(color: Colors.white70, fontSize: 12)),
+                            Text(currencyFmt.format(available), style: GoogleFonts.poppins(color: Colors.white, fontSize: 26, fontWeight: FontWeight.bold)),
+                          ]),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildCard('Target', _formatCurrency(campaign.target)),
-                    const SizedBox(height: 8),
-                    _buildCard(
-                        'Terkumpul', _formatCurrency(campaign.collected)),
-                    const SizedBox(height: 8),
-                    _buildCard('Tersedia', _formatCurrency(available)),
-                    const SizedBox(height: 16),
-                    ElevatedButton.icon(
-                        onPressed: _onNewCatatan,
-                        icon: const Icon(Icons.add),
-                        label: const Text('New Catatan')),
-                    const SizedBox(height: 16),
-                    if (_localRecords.isNotEmpty)
-                      CheckboxListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: const Text('Select All'),
-                          value: _isAllSelected,
-                          onChanged: _onSelectAllChanged),
-                    const SizedBox(height: 8),
-                    Expanded(
-                      child: _localRecords.isEmpty
-                          ? const Center(child: Text('Belum ada catatan'))
-                          : ListView.builder(
-                              itemCount: _localRecords.length,
-                              itemBuilder: (_, i) {
-                                final r = _localRecords[i];
-                                final isSelected =
-                                    _selectedRecordKeys.contains(r.key);
-                                return Container(
+                  ),
+
+                  // Action Bar (Buttons)
+                  Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Row(
+                      children: [
+                        // Checkbox Select All
+                        if (_localRecords.isNotEmpty)
+                          InkWell(
+                            onTap: () => _onSelectAllChanged(!_isAllSelected),
+                            child: Row(children: [
+                              Checkbox(activeColor: primaryColor, value: _isAllSelected, onChanged: _onSelectAllChanged),
+                              Text('Semua', style: GoogleFonts.poppins(fontSize: 12)),
+                            ]),
+                          ),
+                        
+                        const Spacer(),
+
+                        // Tombol Export & Share (Hanya muncul jika ada item terpilih)
+                        if (_selectedRecordKeys.isNotEmpty) ...[
+                          // Tombol Export (Simpan)
+                          ElevatedButton.icon(
+                            onPressed: () => _showFormatOptions(forShare: false),
+                            icon: const Icon(Icons.save_alt_rounded, size: 16),
+                            label: const Text('Export'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: primaryColor,
+                              elevation: 0,
+                              side: const BorderSide(color: primaryColor),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Tombol Share (Direct WhatsApp/Email)
+                          ElevatedButton.icon(
+                            onPressed: () => _showFormatOptions(forShare: true),
+                            icon: const Icon(Icons.share_rounded, size: 16),
+                            label: const Text('Share'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.green,
+                              elevation: 0,
+                              side: const BorderSide(color: Colors.green),
+                              padding: const EdgeInsets.symmetric(horizontal: 12),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+
+                        // Tombol Create
+                        ElevatedButton.icon(
+                          onPressed: _onNewCatatan,
+                          icon: const Icon(Icons.add, size: 16),
+                          label: const Text('Catat'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: primaryColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // List Data
+                  Expanded(
+                    child: _localRecords.isEmpty
+                        ? Center(child: Text('Belum ada catatan', style: GoogleFonts.poppins(color: Colors.grey)))
+                        : ListView.builder(
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: _localRecords.length,
+                            itemBuilder: (_, i) {
+                              final r = _localRecords[i];
+                              final isSelected = _selectedRecordKeys.contains(r.key);
+                              return GestureDetector(
+                                onTap: () => _onSingleRecordToggled(r, !isSelected),
+                                child: Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   padding: const EdgeInsets.all(12),
                                   decoration: BoxDecoration(
-                                    color: isSelected
-                                        ? Colors.blue[50]
-                                        : Colors.grey[100],
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(
-                                        color: isSelected
-                                            ? Colors.blue
-                                            : Colors.grey[300]!),
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(16),
+                                    border: isSelected ? Border.all(color: primaryColor, width: 1.5) : null,
+                                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 8, offset: const Offset(0, 4))],
                                   ),
                                   child: Row(children: [
-                                    Checkbox(
-                                        value: isSelected,
-                                        onChanged: (v) =>
-                                            _onSingleRecordToggled(r, v)),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(r.penerima,
-                                                style: const TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight:
-                                                        FontWeight.w500)),
-                                            const SizedBox(height: 4),
-                                            Text(_formatCurrency(r.uangKeluar)),
-                                          ]),
-                                    ),
-                                    IconButton(
-                                        icon: const Icon(Icons.edit,
-                                            color: Colors.green),
-                                        onPressed: () => _editRecord(r)),
-                                    IconButton(
-                                        icon: const Icon(Icons.delete,
-                                            color: Colors.red),
-                                        onPressed: () =>
-                                            _confirmDeleteRecord(r.key)),
+                                    Icon(isSelected ? Icons.check_circle : Icons.circle_outlined, color: isSelected ? primaryColor : Colors.grey[300]),
+                                    const SizedBox(width: 12),
+                                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text(r.penerima, style: GoogleFonts.poppins(fontWeight: FontWeight.w600)),
+                                      Text(DateFormat('dd MMM').format(r.timestamp), style: GoogleFonts.poppins(fontSize: 11, color: Colors.grey)),
+                                    ])),
+                                    Text('- ${currencyFmt.format(r.uangKeluar)}', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.red)),
+                                    IconButton(icon: const Icon(Icons.delete_outline, size: 18, color: Colors.grey), onPressed: () => _confirmDeleteRecord(r.key))
                                   ]),
-                                );
-                              },
-                            ),
-                    ),
-                    if (_selectedRecordKeys.isNotEmpty)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        child: ElevatedButton.icon(
-                          icon: const Icon(Icons.file_download_outlined),
-                          label: const Text('Export'),
-                          onPressed: _showExportOptions,
-                          style: ElevatedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(48)),
-                        ),
-                      ),
-                  ]),
-            );
-          },
-        ),
-      ),
-      if (_isExporting)
-        Positioned.fill(
-          child: Container(
-            color: Colors.black45,
-            child: const Center(
-                child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white))),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
           ),
-        ),
-    ]);
-  }
-
-  Widget _buildCard(String label, String value) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(label, style: TextStyle(color: Colors.grey[600])),
-        const SizedBox(height: 4),
-        Text(value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-      ]),
+          if (_isExporting) Container(color: Colors.black45, child: const Center(child: CircularProgressIndicator(color: Colors.white))),
+        ],
+      ),
     );
-  }
-
-  String _formatCurrency(num amount) {
-    return NumberFormat.currency(
-            locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
-        .format(amount);
   }
 }
 

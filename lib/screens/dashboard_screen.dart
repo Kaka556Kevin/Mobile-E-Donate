@@ -2,6 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart'; // Pastikan package ini ada
 import '../models/donation.dart';
 import '../models/form_donasi.dart';
 import '../services/api_service.dart';
@@ -42,20 +43,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
       name: 'Rp ',
       decimalDigits: 0,
     );
+    const primaryColor = Color(0xFF4D5BFF);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FE),
       appBar: AppBar(
-        title: const Text('Dashboard'),
-        centerTitle: true,
+        title: Text('Dashboard', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black87)),
+        centerTitle: false,
+        backgroundColor: Colors.transparent,
+        elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-            onPressed: () {
-              setState(() {
-                _loadAllData();
-              });
-            },
+            icon: const Icon(Icons.refresh_rounded, color: primaryColor),
+            onPressed: () => setState(() => _loadAllData()),
           ),
         ],
       ),
@@ -63,10 +63,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         future: _futureCampaigns,
         builder: (ctx, snapCampaigns) {
           if (snapCampaigns.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(child: CircularProgressIndicator(color: primaryColor));
           }
           if (snapCampaigns.hasError) {
-            return Center(child: Text('Error: ${snapCampaigns.error}'));
+            return Center(child: Text('Error: ${snapCampaigns.error}', style: GoogleFonts.poppins()));
           }
 
           final campaigns = snapCampaigns.data!
@@ -79,7 +79,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           );
 
           return SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -88,66 +88,96 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   children: [
                     Expanded(
                       child: _infoCard(
-                        title: 'Campaigns',
+                        title: 'Kampanye',
                         value: totalCamp.toString(),
+                        icon: Icons.campaign_rounded,
+                        color: Colors.orange,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 16),
                     Expanded(
                       child: _infoCard(
-                        title: 'Collected',
-                        value: currency.format(totalColl),
+                        title: 'Terkumpul',
+                        value: NumberFormat.compactCurrency(locale: 'id_ID', symbol: 'Rp').format(totalColl),
+                        icon: Icons.monetization_on_rounded,
+                        color: Colors.green,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 // — Donasi Terkini
-                const Text(
-                  'Donasi Terkini',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text('Kampanye Terbaru', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: recent.length,
+                  itemBuilder: (context, index) {
+                    final d = recent[index];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.volunteer_activism, color: primaryColor),
+                        ),
+                        title: Text(d.nama, style: GoogleFonts.poppins(fontWeight: FontWeight.w600, fontSize: 14)),
+                        subtitle: Text(DateFormat('dd MMM yyyy').format(d.createdAt), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                        trailing: Text(
+                          currency.format(d.collected),
+                          style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.green),
+                        ),
+                      ),
+                    );
+                  },
                 ),
-                const SizedBox(height: 8),
-                Card(
-                  elevation: 2,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 16),
-                    child: _RecentCampaignTable(
-                        recent: recent, currency: currency),
-                  ),
-                ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-                // — Donatur Search Field
+                // — Donatur Section
+                Text('Daftar Donatur', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 12),
+                
+                // Search Bar
                 TextField(
                   controller: _donorSearchCtrl,
-                  decoration: const InputDecoration(
-                    labelText: 'Cari Donatur...',
-                    prefixIcon: Icon(Icons.search),
-                    border: OutlineInputBorder(),
-                    contentPadding:
-                        EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  style: GoogleFonts.poppins(),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama donatur...',
+                    hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                    filled: true,
+                    fillColor: Colors.white,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   ),
-                  onChanged: (_) {
-                    setState(() {});
-                  },
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 16),
 
-                // — Daftar Donatur
+                // List Donatur
                 FutureBuilder<List<FormDonasi>>(
                   future: _futureDonors,
                   builder: (ctx, snapDonors) {
                     if (snapDonors.connectionState == ConnectionState.waiting) {
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
                     }
                     if (snapDonors.hasError) {
-                      return Center(child: Text('Error: ${snapDonors.error}'));
+                      return Text('Gagal memuat donatur.', style: GoogleFonts.poppins(color: Colors.red));
                     }
 
                     final allDonors = snapDonors.data!
@@ -157,38 +187,46 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         .toList();
 
                     if (allDonors.isEmpty) {
-                      return const Center(child: Text('Belum ada donatur.'));
+                      return Center(child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Text('Tidak ada data donatur.', style: GoogleFonts.poppins(color: Colors.grey)),
+                      ));
                     }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        const Text(
-                          'Daftar Donatur',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        const SizedBox(height: 8),
-                        Card(
-                          elevation: 2,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    // Tampilkan maksimal 10 donatur agar tidak terlalu panjang di dashboard
+                    final displayDonors = allDonors.take(10).toList();
+
+                    return ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: displayDonors.length,
+                      itemBuilder: (context, index) {
+                        final d = displayDonors[index];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.withOpacity(0.1)),
                           ),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 16),
-                            child: _DonorListTable(
-                              donors: allDonors,
-                              currency: currency,
+                          child: ListTile(
+                            leading: CircleAvatar(
+                              backgroundColor: Colors.grey[100],
+                              child: Text(d.nama[0].toUpperCase(), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black54)),
+                            ),
+                            title: Text(d.nama, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14)),
+                            subtitle: Text(DateFormat('dd MMM yyyy').format(d.tanggal), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
+                            trailing: Text(
+                              currency.format(d.nominal),
+                              style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black87),
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     );
                   },
                 ),
-
-                const SizedBox(height: 16),
+                const SizedBox(height: 24),
               ],
             ),
           );
@@ -197,235 +235,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _infoCard({required String title, required String value}) {
+  Widget _infoCard({required String title, required String value, required IconData icon, required Color color}) {
     return Container(
-      height: 72, // slightly smaller to remove 1px overflow
-      margin: const EdgeInsets.symmetric(horizontal: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: const [BoxShadow(blurRadius: 4, color: Colors.black12)],
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(title, style: TextStyle(color: Colors.grey[700], fontSize: 13)),
-          const SizedBox(height: 6),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(title, style: GoogleFonts.poppins(color: Colors.grey[600], fontSize: 12)),
+          const SizedBox(height: 4),
           Text(value,
-              style:
-                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87)),
         ],
       ),
     );
-  }
-}
-
-/// “Donasi Terkini” using a Table to fill available width
-class _RecentCampaignTable extends StatelessWidget {
-  final List<Donation> recent;
-  final NumberFormat currency;
-  final DateFormat _fmt = DateFormat('dd MMM yyyy', 'id_ID');
-
-  _RecentCampaignTable({
-    super.key,
-    required this.recent,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      // Using 3 columns: Date, Name, Collected
-      return Table(
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        columnWidths: const {
-          // You can adjust flex values as needed
-          0: FlexColumnWidth(2), // Tanggal
-          1: FlexColumnWidth(3), // Nama
-          2: FlexColumnWidth(2), // Terkumpul
-        },
-        children: [
-          // Header row
-          TableRow(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-            ),
-            children: const [
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Tanggal',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Nama',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Terkumpul',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ],
-          ),
-
-          // Data rows
-          for (var d in recent)
-            TableRow(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    _fmt.format(d.createdAt),
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    d.nama,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    currency.format(d.collected),
-                    style: const TextStyle(fontSize: 13),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      );
-    });
-  }
-}
-
-/// “Daftar Donatur” using a Table to fill available width
-class _DonorListTable extends StatelessWidget {
-  final List<FormDonasi> donors;
-  final NumberFormat currency;
-  final DateFormat _fmt = DateFormat('dd MMM yyyy', 'id_ID');
-
-  _DonorListTable({
-    super.key,
-    required this.donors,
-    required this.currency,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      // Using 3 columns: Date, Name, Nominal
-      return Table(
-        defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-        columnWidths: const {
-          // Flex ratios may be adjusted for readability
-          0: FlexColumnWidth(2), // Tanggal
-          1: FlexColumnWidth(3), // Nama
-          2: FlexColumnWidth(2), // Nominal
-        },
-        children: [
-          // Header row
-          TableRow(
-            decoration: BoxDecoration(
-              color: Colors.grey.shade200,
-            ),
-            children: const [
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Tanggal',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Nama',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.left,
-                ),
-              ),
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: 8),
-                child: Text(
-                  'Nominal',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey,
-                  ),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-            ],
-          ),
-
-          // Data rows
-          for (var d in donors)
-            TableRow(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    _fmt.format(d.tanggal),
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    d.nama,
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 6),
-                  child: Text(
-                    currency.format(d.nominal),
-                    style: const TextStyle(fontSize: 13),
-                    textAlign: TextAlign.right,
-                  ),
-                ),
-              ],
-            ),
-        ],
-      );
-    });
   }
 }
