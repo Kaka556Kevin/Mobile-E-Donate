@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:google_fonts/google_fonts.dart'; // Pastikan package ini ada
+import 'package:google_fonts/google_fonts.dart';
 import '../models/donation.dart';
 import '../models/form_donasi.dart';
 import '../services/api_service.dart';
@@ -18,6 +18,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Future<List<Donation>> _futureCampaigns;
   late Future<List<FormDonasi>> _futureDonors;
   final _donorSearchCtrl = TextEditingController();
+  
+  // [MODIFIKASI] State untuk filter sort donatur
+  String _sortDonorBy = 'Terbaru'; 
 
   @override
   void initState() {
@@ -149,23 +152,48 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text('Daftar Donatur', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 
-                // Search Bar
-                TextField(
-                  controller: _donorSearchCtrl,
-                  style: GoogleFonts.poppins(),
-                  decoration: InputDecoration(
-                    hintText: 'Cari nama donatur...',
-                    hintStyle: GoogleFonts.poppins(color: Colors.grey),
-                    prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
+                // [MODIFIKASI] Row Search & Sort Filter
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _donorSearchCtrl,
+                        style: GoogleFonts.poppins(),
+                        decoration: InputDecoration(
+                          hintText: 'Cari nama donatur...',
+                          hintStyle: GoogleFonts.poppins(color: Colors.grey),
+                          prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                        onChanged: (_) => setState(() {}),
+                      ),
                     ),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                  onChanged: (_) => setState(() {}),
+                    const SizedBox(width: 10),
+                    // Dropdown Sort UI
+                    PopupMenuButton<String>(
+                      icon: Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white, 
+                          borderRadius: BorderRadius.circular(12)
+                        ),
+                        child: const Icon(Icons.sort_rounded, color: primaryColor),
+                      ),
+                      onSelected: (val) => setState(() => _sortDonorBy = val),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 'Terbaru', child: Text('📅 Terbaru')),
+                        const PopupMenuItem(value: 'Terlama', child: Text('📅 Terlama')),
+                        const PopupMenuItem(value: 'Tertinggi', child: Text('💰 Nominal Tertinggi')),
+                        const PopupMenuItem(value: 'Terendah', child: Text('💰 Nominal Terendah')),
+                      ],
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 16),
 
@@ -180,11 +208,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       return Text('Gagal memuat donatur.', style: GoogleFonts.poppins(color: Colors.red));
                     }
 
+                    // 1. Filter
                     final allDonors = snapDonors.data!
                         .where((d) => d.nama
                             .toLowerCase()
                             .contains(_donorSearchCtrl.text.toLowerCase()))
                         .toList();
+
+                    // 2. Sort Logic [MODIFIKASI]
+                    if (_sortDonorBy == 'Terbaru') {
+                      allDonors.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+                    } else if (_sortDonorBy == 'Terlama') {
+                      allDonors.sort((a, b) => a.tanggal.compareTo(b.tanggal));
+                    } else if (_sortDonorBy == 'Tertinggi') {
+                      allDonors.sort((a, b) => b.nominal.compareTo(a.nominal));
+                    } else if (_sortDonorBy == 'Terendah') {
+                      allDonors.sort((a, b) => a.nominal.compareTo(b.nominal));
+                    }
 
                     if (allDonors.isEmpty) {
                       return Center(child: Padding(
@@ -193,7 +233,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ));
                     }
 
-                    // Tampilkan maksimal 10 donatur agar tidak terlalu panjang di dashboard
+                    // Tampilkan maksimal 10 donatur
                     final displayDonors = allDonors.take(10).toList();
 
                     return ListView.builder(
@@ -212,7 +252,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                           child: ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Colors.grey[100],
-                              child: Text(d.nama[0].toUpperCase(), style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black54)),
+                              child: Text(d.nama.isNotEmpty ? d.nama[0].toUpperCase() : '?', style: GoogleFonts.poppins(fontWeight: FontWeight.bold, color: Colors.black54)),
                             ),
                             title: Text(d.nama, style: GoogleFonts.poppins(fontWeight: FontWeight.w500, fontSize: 14)),
                             subtitle: Text(DateFormat('dd MMM yyyy').format(d.tanggal), style: GoogleFonts.poppins(fontSize: 12, color: Colors.grey)),
