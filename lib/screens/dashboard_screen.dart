@@ -1,11 +1,13 @@
 // lib/screens/dashboard_screen.dart
 
+import 'dart:async'; 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../models/donation.dart';
 import '../models/form_donasi.dart';
 import '../services/api_service.dart';
+import '../services/notification_service.dart'; 
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,23 +21,73 @@ class _DashboardScreenState extends State<DashboardScreen> {
   late Future<List<FormDonasi>> _futureDonors;
   final _donorSearchCtrl = TextEditingController();
   
-  // [MODIFIKASI] State untuk filter sort donatur
+  // State untuk filter sort donatur
   String _sortDonorBy = 'Terbaru'; 
+
+  // [TAMBAHAN] Variabel untuk fitur cek otomatis
+  Timer? _pollingTimer;
+  int _lastDonorCount = 0;
 
   @override
   void initState() {
     super.initState();
     _loadAllData();
+    _startPolling(); // [TAMBAHAN] Jalankan pengecekan otomatis
   }
 
   void _loadAllData() {
     _futureCampaigns = ApiService().fetchAllDonations();
-    _futureDonors = ApiService().fetchFormDonasi();
+    
+    // [MODIFIKASI] Kita perlu tahu jumlah data awal agar notifikasi tidak muncul saat pertama buka
+    _futureDonors = ApiService().fetchFormDonasi().then((data) {
+      if (_lastDonorCount == 0) {
+        _lastDonorCount = data.length;
+      }
+      return data;
+    });
+  }
+
+  // [TAMBAHAN] Fungsi untuk mengecek data baru setiap 15 detik
+  void _startPolling() {
+    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (timer) async {
+      try {
+        final newDonors = await ApiService().fetchFormDonasi();
+        
+        // Jika jumlah data API lebih banyak dari data lokal terakhir
+        if (newDonors.length > _lastDonorCount) {
+          
+          // Cari donatur paling baru berdasarkan tanggal
+          newDonors.sort((a, b) => b.tanggal.compareTo(a.tanggal));
+          
+          if (newDonors.isNotEmpty) {
+            final latest = newDonors.first;
+            final currency = NumberFormat.simpleCurrency(locale: 'id_ID', decimalDigits: 0);
+
+            // Tampilkan Notifikasi
+            NotificationService().showNotification(
+              'Donasi Masuk! 💰', 
+              '${latest.nama} baru saja berdonasi ${currency.format(latest.nominal)} via Website.'
+            );
+          }
+
+          // Update jumlah data terakhir
+          _lastDonorCount = newDonors.length;
+          
+          // Refresh tampilan dashboard otomatis
+          setState(() {
+            _loadAllData();
+          });
+        }
+      } catch (e) {
+        // Silent error (abaikan error koneksi saat background check)
+      }
+    });
   }
 
   @override
   void dispose() {
     _donorSearchCtrl.dispose();
+    _pollingTimer?.cancel(); // [TAMBAHAN] Matikan timer saat keluar halaman
     super.dispose();
   }
 
@@ -152,7 +204,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Text('Daftar Donatur', style: GoogleFonts.poppins(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 12),
                 
-                // [MODIFIKASI] Row Search & Sort Filter
+                // Row Search & Sort Filter
                 Row(
                   children: [
                     Expanded(
@@ -201,12 +253,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 FutureBuilder<List<FormDonasi>>(
                   future: _futureDonors,
                   builder: (ctx, snapDonors) {
-                    if (snapDonors.connectionState == ConnectionState.waiting) {
+                    // [MODIFIKASI] Hanya loading jika belum ada data sama sekali
+                    if (snapDonors.connectionState == ConnectionState.waiting && _lastDonorCount == 0) {
                       return const Center(child: Padding(padding: EdgeInsets.all(16), child: CircularProgressIndicator()));
                     }
                     if (snapDonors.hasError) {
                       return Text('Gagal memuat donatur.', style: GoogleFonts.poppins(color: Colors.red));
                     }
+                    if (!snapDonors.hasData) return const SizedBox();
 
                     // 1. Filter
                     final allDonors = snapDonors.data!
@@ -215,7 +269,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             .contains(_donorSearchCtrl.text.toLowerCase()))
                         .toList();
 
-                    // 2. Sort Logic [MODIFIKASI]
+                    // 2. Sort Logic
                     if (_sortDonorBy == 'Terbaru') {
                       allDonors.sort((a, b) => b.tanggal.compareTo(a.tanggal));
                     } else if (_sortDonorBy == 'Terlama') {
